@@ -13,7 +13,7 @@ from urllib.parse import parse_qs, parse_qsl, urlencode, urljoin, urlparse, urlu
 import httpx
 from bs4 import BeautifulSoup
 
-HTTP_USER_AGENT = "MichaelJobAgent/0.2.7 (personal job-search assistant; polite rate limiting)"
+HTTP_USER_AGENT = "MichaelJobAgent/0.2.8 (personal job-search assistant; polite rate limiting)"
 BROWSER_USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"

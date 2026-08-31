@@ -5,7 +5,7 @@ let state = {
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const statusNames = {new:'Ny',discovered:'Fundet',shortlisted:'Kortlistet',dismissed:'Fravalgt',drafted:'Udkast',awaiting_review:'Til gennemgang',submitted:'Sendt',confirmation_received:'Bekræftet',interview:'Samtale',rejected:'Afslag',withdrawn:'Trukket',duplicate:'Dublet'};
-const providerNames = {template:'Skabelon',openai:'OpenAI',ollama:'Ollama',clipboard:'Maya',manual:'Manuelt redigeret','manual-edit':'Manuelt redigeret'};
+const providerNames = {template:'Skabelon',openai:'OpenAI',ollama:'Ollama',clipboard:'AI-agent',manual:'Manuelt redigeret','manual-edit':'Manuelt redigeret'};
 
 async function api(url, options={}) {
   const res = await fetch(url, options);
@@ -140,8 +140,8 @@ async function selectJob(id){
     try{
       const result=await api(`/api/jobs/${id}/draft`,{method:'POST'});
       if(result.mode==='handoff'){
-        state.handoffJobId=id; $('#mayaPrompt').value=result.prompt; $('#mayaResponse').value=''; $('#mayaDialog').showModal();
-        toast('Ansøgningspakken er klar til Maya');
+        state.handoffJobId=id; $('#aiAgentPrompt').value=result.prompt; $('#aiAgentResponse').value=''; $('#aiAgentDialog').showModal();
+        toast('Ansøgningspakken er klar til AI-agenten');
       }else{
         toast(`Ansøgning klar via ${providerNames[result.provider]||result.provider}`); await loadJobs();
       }
@@ -237,7 +237,7 @@ function refreshProviderPanels(){
     template:'Gratis og helt lokal. Resultatet er stabilt, men generisk.',
     openai:'Sender annoncen og den relevante faktaprofil til OpenAI og gemmer det strukturerede resultat lokalt.',
     ollama:'Kører lokalt uden metered API-regning. Kvaliteten afhænger af den valgte model og din computer.',
-    clipboard:'Laver en komplet pakke til vores ChatGPT-samtale. En menneskelig Michael er stadig nødvendig som transportlag.',
+    clipboard:'Laver en komplet pakke, som du kan kopiere til en valgfri AI-agent. Copy/paste-trinnet foregår manuelt.',
   };
   $('#providerExplainer').textContent=messages[provider]||'';
 }
@@ -289,14 +289,14 @@ async function refreshOllama(testOnly=false){
 }
 $('#refreshOllamaBtn').onclick=()=>refreshOllama(false); $('#testOllamaBtn').onclick=()=>refreshOllama(true);
 
-$('#copyMayaPromptBtn').onclick=async()=>{await copyText($('#mayaPrompt').value);toast('Pakken er kopieret. Smugheden følger automatisk med.')};
-$('#saveMayaDraftBtn').onclick=async()=>{
-  const body=$('#mayaResponse').value.trim(); if(body.length<20){toast('Indsæt den færdige ansøgning først.',true);return}
+$('#copyAiAgentPromptBtn').onclick=async()=>{await copyText($('#aiAgentPrompt').value);toast('Pakken er kopieret.')};
+$('#saveAiAgentDraftBtn').onclick=async()=>{
+  const body=$('#aiAgentResponse').value.trim(); if(body.length<20){toast('Indsæt den færdige ansøgning først.',true);return}
   if(!state.handoffJobId){toast('Jeg har mistet forbindelsen til jobbet. Luk dialogen og prøv igen.',true);return}
-  const btn=$('#saveMayaDraftBtn');btn.disabled=true;btn.textContent='Gemmer…';
+  const btn=$('#saveAiAgentDraftBtn');btn.disabled=true;btn.textContent='Gemmer…';
   try{
     await api(`/api/jobs/${state.handoffJobId}/draft/save`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({body,provider:'clipboard'})});
-    $('#mayaDialog').close(); toast('Maya-udkastet er gemt'); await loadJobs();
+    $('#aiAgentDialog').close(); toast('AI-agent-udkastet er gemt'); await loadJobs();
   }catch(e){toast(e.message,true)}finally{btn.disabled=false;btn.textContent='Gem som udkast'}
 };
 

@@ -4,7 +4,7 @@ cd "$(dirname "$0")"
 
 fail() {
   printf '\nSetup stoppede på grund af en fejl.\n'
-  printf 'Kopiér gerne de sidste linjer fra Terminal tilbage til Maya.\n'
+  printf 'Kopiér gerne de sidste linjer fra Terminal til den person, der hjælper med fejlen.\n'
 }
 trap fail ERR
 

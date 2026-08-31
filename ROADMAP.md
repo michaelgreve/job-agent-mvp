@@ -7,6 +7,11 @@
 
 # Roadmap
 
+## Completed in 0.2.8
+
+- Replaced the personal handoff branding with a provider-neutral **Send til AI-agent** workflow.
+- Preserved the existing `clipboard` provider key for configuration and draft compatibility.
+
 ## Completed in 0.2.7
 
 - Added numbered, recorded and transactional SQLite migrations.
@@ -43,7 +48,7 @@
 ## Completed in 0.2.0
 
 - Shared application-generation context for all providers.
-- Replaceable Template, OpenAI, Ollama and Maya-handoff providers.
+- Replaceable Template, OpenAI, Ollama and AI-agent handoff providers.
 - Structured facts-used and warnings metadata.
 - Ollama connection testing and local model discovery.
 - OpenAI connection testing without exposing the API key to the browser.

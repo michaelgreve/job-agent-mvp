@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Michael's Jobagent</title>
-  <link rel="stylesheet" href="/static/style.css?v=0.2.7">
+  <link rel="stylesheet" href="/static/style.css?v=0.2.8">
 </head>
 <body>
   <header>
@@ -116,7 +116,7 @@
             <option value="template">Ingen AI — skabelon</option>
             <option value="openai">OpenAI API</option>
             <option value="ollama">Lokal Ollama</option>
-            <option value="clipboard">Send til Maya</option>
+            <option value="clipboard">Send til AI-agent</option>
           </select>
         </label>
         <div class="provider-explainer" id="providerExplainer"></div>
@@ -141,7 +141,7 @@
         </section>
 
         <section class="provider-panel" data-provider-panel="clipboard">
-          <h3>Send til Maya</h3>
+          <h3>Send til AI-agent</h3>
           <p class="hint">Når du trykker <strong>Lav ansøgning</strong>, laver appen en komplet pakke med annoncen, matchforklaringen, din faktaprofil og skriveønskerne. Du kopierer den hertil, og indsætter derefter den færdige tekst tilbage i appen.</p>
         </section>
 
@@ -166,18 +166,18 @@
     </form>
   </dialog>
 
-  <dialog id="mayaDialog" class="wide">
-    <form method="dialog" id="mayaForm">
-      <div class="dialog-head"><h2>Send ansøgningspakken til Maya</h2><button value="cancel" class="icon">×</button></div>
+  <dialog id="aiAgentDialog" class="wide">
+    <form method="dialog" id="aiAgentForm">
+      <div class="dialog-head"><h2>Send ansøgningspakken til en AI-agent</h2><button value="cancel" class="icon">×</button></div>
       <ol class="handoff-steps">
-        <li>Kopiér pakken og indsæt den i vores ChatGPT-samtale.</li>
+        <li>Kopiér pakken og indsæt den hos den AI-agent, du vil bruge.</li>
         <li>Indsæt den færdige ansøgning i nederste felt.</li>
         <li>Gem den som det aktuelle udkast.</li>
       </ol>
-      <label>Pakke til ChatGPT<textarea id="mayaPrompt" rows="16" readonly spellcheck="false"></textarea></label>
-      <button type="button" class="secondary" id="copyMayaPromptBtn">Kopiér pakken</button>
-      <label>Færdig ansøgning fra Maya<textarea id="mayaResponse" rows="13" placeholder="Indsæt den færdige ansøgning her…"></textarea></label>
-      <div class="dialog-actions"><button value="cancel" class="secondary">Luk</button><button type="button" class="primary" id="saveMayaDraftBtn">Gem som udkast</button></div>
+      <label>Pakke til AI-agenten<textarea id="aiAgentPrompt" rows="16" readonly spellcheck="false"></textarea></label>
+      <button type="button" class="secondary" id="copyAiAgentPromptBtn">Kopiér pakken</button>
+      <label>Færdig ansøgning fra AI-agenten<textarea id="aiAgentResponse" rows="13" placeholder="Indsæt den færdige ansøgning her…"></textarea></label>
+      <div class="dialog-actions"><button value="cancel" class="secondary">Luk</button><button type="button" class="primary" id="saveAiAgentDraftBtn">Gem som udkast</button></div>
     </form>
   </dialog>
 
@@ -191,6 +191,6 @@
   </dialog>
 
   <div id="toast" class="toast hidden"></div>
-  <script src="/static/app.js?v=0.2.7"></script>
+  <script src="/static/app.js?v=0.2.8"></script>
 </body>
 </html>

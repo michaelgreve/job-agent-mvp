@@ -1,8 +1,12 @@
-# Michael's Jobagent — 0.2.7
+# Michael's Jobagent — 0.2.8
 
 A local-first personal job-search assistant for Jobnet, Jobindex and the employer career sites they link to.
 
 It is intentionally an **assistant**, not an unsupervised mass-application bot. It collects, merges, scores, drafts and fills common fields, but it never clicks the final Send/Submit button.
+
+## Version 0.2.8: neutral AI-agent handoff
+
+The clipboard workflow is now labelled **Send til AI-agent** throughout the app. It produces a provider-neutral package that can be pasted into any suitable external AI agent, then accepts the finished application back as a local draft. Existing settings using the internal `clipboard` provider continue to work unchanged.
 
 ## Version 0.2.7: engineering foundation
 
@@ -102,12 +106,12 @@ ollama pull qwen3:8b
 
 Then use **Find lokale modeller** in the AI settings.
 
-### 4. Send til Maya
+### 4. Send til AI-agent
 
 - Creates a complete handoff package containing the advert, matching explanation, factual profile and writing rules.
 - Copies the package into your existing ChatGPT conversation.
-- Lets you paste Maya's finished application back into the app and save it as the current draft.
-- Requires no separate API account, but includes one Michael-shaped transport step.
+- Lets you paste the AI agent's finished application back into the app and save it as the current draft.
+- Works with any suitable AI agent and requires no direct provider integration in the app.
 
 ## Draft review
 
@@ -237,7 +241,7 @@ data/cv/
 data/browser-profile/
 ```
 
-When OpenAI mode is selected, the advert and relevant structured profile are sent to the configured API endpoint. Template, Ollama and Maya-handoff preparation run locally; naturally, the handoff content leaves the computer when you paste it into ChatGPT.
+When OpenAI mode is selected, the advert and relevant structured profile are sent to the configured API endpoint. Template, Ollama and AI-agent handoff preparation run locally; naturally, the handoff content leaves the computer when you paste it into an external AI service.
 
 ## Known limitations
 
@@ -255,7 +259,7 @@ source .venv/bin/activate
 pytest -q
 ```
 
-Version 0.2.7 contains 57 tests covering scoring, extraction, Jobnet structured data, Jobindex link formats, pagination, frame extraction and result-card fallback, publication-date checkpoints, atomic checkpoint commits, duplicate detection including archived jobs, transactional database migrations, database reset, provider selection, Maya handoff, draft storage, Ny status and archiving.
+Version 0.2.8 contains 57 tests covering scoring, extraction, Jobnet structured data, Jobindex link formats, pagination, frame extraction and result-card fallback, publication-date checkpoints, atomic checkpoint commits, duplicate detection including archived jobs, transactional database migrations, database reset, provider selection, AI-agent handoff, draft storage, Ny status and archiving.
 
 ### Ny-status (0.2.5)
 Job, som første gang bliver fundet af en automatisk scanning, får status **Ny**. De bliver ved med at være Ny, indtil du selv ændrer status, så en senere scanning ikke skjuler job, du endnu ikke har gennemgået. Eksisterende job ændres ikke, og manuelt tilføjede job starter fortsat som **Fundet**.
