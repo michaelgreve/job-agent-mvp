@@ -3,6 +3,8 @@ from __future__ import annotations
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
+from pathlib import Path
+from collections.abc import Callable
 from typing import Any, Iterator
 
 from .config import DB_PATH, ensure_data_files
@@ -77,7 +79,16 @@ CREATE TABLE IF NOT EXISTS events (
     created_at TEXT NOT NULL,
     FOREIGN KEY(job_id) REFERENCES jobs(id) ON DELETE SET NULL
 );
+
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    version INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    applied_at TEXT NOT NULL
+);
 """
+
+Migration = tuple[int, str, Callable[[sqlite3.Connection], None]]
+_INITIALIZED_PATHS: set[Path] = set()
 
 
 def utcnow() -> str:
@@ -90,26 +101,74 @@ def _ensure_column(conn: sqlite3.Connection, table: str, column: str, declaratio
         conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {declaration}")
 
 
+def _migration_draft_metadata(conn: sqlite3.Connection) -> None:
+    _ensure_column(conn, "drafts", "facts_used", "TEXT NOT NULL DEFAULT '[]'")
+    _ensure_column(conn, "drafts", "warnings", "TEXT NOT NULL DEFAULT '[]'")
+    _ensure_column(conn, "drafts", "prompt_snapshot", "TEXT NOT NULL DEFAULT ''")
+
+
+def _migration_archive(conn: sqlite3.Connection) -> None:
+    _ensure_column(conn, "jobs", "archived", "INTEGER NOT NULL DEFAULT 0")
+    _ensure_column(conn, "jobs", "archived_at", "TEXT")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_archived ON jobs(archived)")
+
+
+def _migration_list_indexes(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_jobs_active_status_score "
+        "ON jobs(archived, status, score)"
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_drafts_job_id ON drafts(job_id, id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_job_sources_job_id ON job_sources(job_id)")
+
+
+MIGRATIONS: tuple[Migration, ...] = (
+    (1, "draft_metadata", _migration_draft_metadata),
+    (2, "archive_flag", _migration_archive),
+    (3, "common_query_indexes", _migration_list_indexes),
+)
+
+
+def _configure_connection(conn: sqlite3.Connection) -> None:
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA busy_timeout = 5000")
+
+
 def init_db() -> None:
     ensure_data_files()
-    with sqlite3.connect(DB_PATH) as conn:
+    database_path = Path(DB_PATH).resolve()
+    if database_path in _INITIALIZED_PATHS and database_path.exists():
+        return
+    with sqlite3.connect(database_path, timeout=5.0) as conn:
+        _configure_connection(conn)
+        conn.execute("PRAGMA journal_mode = WAL")
         conn.executescript(SCHEMA)
-        # Non-destructive migrations for installations created before 0.2.0.
-        _ensure_column(conn, "drafts", "facts_used", "TEXT NOT NULL DEFAULT '[]'")
-        _ensure_column(conn, "drafts", "warnings", "TEXT NOT NULL DEFAULT '[]'")
-        _ensure_column(conn, "drafts", "prompt_snapshot", "TEXT NOT NULL DEFAULT ''")
-        _ensure_column(conn, "jobs", "archived", "INTEGER NOT NULL DEFAULT 0")
-        _ensure_column(conn, "jobs", "archived_at", "TEXT")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_jobs_archived ON jobs(archived)")
-        conn.commit()
+        applied = {
+            int(row[0]) for row in conn.execute("SELECT version FROM schema_migrations")
+        }
+        for version, name, migration in MIGRATIONS:
+            if version in applied:
+                continue
+            try:
+                conn.execute("BEGIN IMMEDIATE")
+                migration(conn)
+                conn.execute(
+                    "INSERT INTO schema_migrations(version,name,applied_at) VALUES(?,?,?)",
+                    (version, name, utcnow()),
+                )
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
+    _INITIALIZED_PATHS.add(database_path)
 
 
 @contextmanager
 def connection() -> Iterator[sqlite3.Connection]:
     init_db()
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=5.0)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
+    _configure_connection(conn)
     try:
         yield conn
         conn.commit()

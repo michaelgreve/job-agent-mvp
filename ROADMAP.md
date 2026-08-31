@@ -7,6 +7,16 @@
 
 # Roadmap
 
+## Completed in 0.2.7
+
+- Added numbered, recorded and transactional SQLite migrations.
+- Enabled SQLite WAL mode, foreign-key enforcement and a five-second busy timeout.
+- Avoided repeated schema initialization for every database connection.
+- Replaced the deprecated FastAPI startup event with a lifespan handler.
+- Added GitHub Actions coverage for Python 3.11–3.14.
+- Added cross-platform line-ending rules.
+- Added regression coverage for failed migrations and archived-job deduplication.
+
 ## Completed in 0.2.3
 
 - Combined parsing of Jobindex's outer detail page and loaded iframe documents.

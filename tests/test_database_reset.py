@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import sqlite3
+
+import pytest
+
 from jobagent import db
 
 
@@ -47,3 +51,54 @@ def test_reset_application_data_removes_ledger_and_restarts_ids(tmp_path, monkey
             ("Første rigtige job", "Beskrivelse", "discovered", now, now),
         ).lastrowid
         assert new_id == 1
+
+
+def test_init_records_migrations_and_configures_sqlite(tmp_path, monkeypatch):
+    database = tmp_path / "jobagent.db"
+    monkeypatch.setattr(db, "DB_PATH", database)
+    monkeypatch.setattr(db, "ensure_data_files", lambda: None)
+
+    db.init_db()
+
+    with db.connection() as conn:
+        migrations = conn.execute(
+            "SELECT version,name FROM schema_migrations ORDER BY version"
+        ).fetchall()
+        journal_mode = conn.execute("PRAGMA journal_mode").fetchone()[0]
+        busy_timeout = conn.execute("PRAGMA busy_timeout").fetchone()[0]
+        foreign_keys = conn.execute("PRAGMA foreign_keys").fetchone()[0]
+
+    assert [tuple(row) for row in migrations] == [
+        (1, "draft_metadata"),
+        (2, "archive_flag"),
+        (3, "common_query_indexes"),
+    ]
+    assert journal_mode == "wal"
+    assert busy_timeout == 5000
+    assert foreign_keys == 1
+
+
+def test_failed_migration_rolls_back_and_is_not_recorded(tmp_path, monkeypatch):
+    database = tmp_path / "jobagent.db"
+    monkeypatch.setattr(db, "DB_PATH", database)
+    monkeypatch.setattr(db, "ensure_data_files", lambda: None)
+
+    def broken_migration(conn):
+        conn.execute("CREATE TABLE should_be_rolled_back(value TEXT)")
+        raise RuntimeError("migration failed")
+
+    monkeypatch.setattr(db, "MIGRATIONS", ((99, "broken", broken_migration),))
+
+    with pytest.raises(RuntimeError, match="migration failed"):
+        db.init_db()
+
+    with sqlite3.connect(database) as conn:
+        recorded = conn.execute(
+            "SELECT COUNT(*) FROM schema_migrations WHERE version=99"
+        ).fetchone()[0]
+        table = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='should_be_rolled_back'"
+        ).fetchone()
+
+    assert recorded == 0
+    assert table is None

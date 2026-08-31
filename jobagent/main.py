@@ -7,6 +7,7 @@ import json
 import os
 import subprocess
 import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
@@ -32,7 +33,15 @@ from .extractors import (
 from .scoring import score_job
 
 VERSION = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
-app = FastAPI(title="Michael's Jobagent", version=VERSION)
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    startup()
+    yield
+
+
+app = FastAPI(title="Michael's Jobagent", version=VERSION, lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=ROOT / "jobagent" / "static"), name="static")
 
 class ImportJobRequest(BaseModel):
@@ -147,7 +156,6 @@ def _rescore_all_jobs() -> None:
                 (result.score, json.dumps(result.details, ensure_ascii=False), utcnow(), job["id"]),
             )
 
-@app.on_event("startup")
 def startup() -> None:
     ensure_data_files()
     init_db()

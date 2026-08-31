@@ -1,8 +1,17 @@
-# Michael's Jobagent — 0.2.6
+# Michael's Jobagent — 0.2.7
 
 A local-first personal job-search assistant for Jobnet, Jobindex and the employer career sites they link to.
 
 It is intentionally an **assistant**, not an unsupervised mass-application bot. It collects, merges, scores, drafts and fills common fields, but it never clicks the final Send/Submit button.
+
+## Version 0.2.7: engineering foundation
+
+- Uses numbered, recorded and transactional SQLite migrations.
+- Enables SQLite WAL mode and a busy timeout for safer concurrent local access.
+- Initializes the database once per process instead of repeating schema work for every query.
+- Uses FastAPI's lifespan API instead of the deprecated startup event hook.
+- Runs the test suite on Python 3.11–3.14 in GitHub Actions.
+- Defines cross-platform line endings for shell, PowerShell, Python and data files.
 
 ## What it does
 
@@ -246,7 +255,7 @@ source .venv/bin/activate
 pytest -q
 ```
 
-Version 0.2.6 contains 54 tests covering scoring, extraction, Jobnet structured data, Jobindex link formats, pagination, frame extraction and result-card fallback, publication-date checkpoints, atomic checkpoint commits, duplicate detection, database reset, provider selection, Maya handoff, draft storage, Ny status and archiving.
+Version 0.2.7 contains 57 tests covering scoring, extraction, Jobnet structured data, Jobindex link formats, pagination, frame extraction and result-card fallback, publication-date checkpoints, atomic checkpoint commits, duplicate detection including archived jobs, transactional database migrations, database reset, provider selection, Maya handoff, draft storage, Ny status and archiving.
 
 ### Ny-status (0.2.5)
 Job, som første gang bliver fundet af en automatisk scanning, får status **Ny**. De bliver ved med at være Ny, indtil du selv ændrer status, så en senere scanning ikke skjuler job, du endnu ikke har gennemgået. Eksisterende job ændres ikke, og manuelt tilføjede job starter fortsat som **Fundet**.

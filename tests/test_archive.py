@@ -154,3 +154,47 @@ def test_migrates_024_database_before_creating_archive_index(tmp_path, monkeypat
     assert "archived_at" in columns
     assert "idx_jobs_archived" in indexes
     assert row == ("Bevar mig", "shortlisted", 0, None)
+
+
+def test_archived_jobs_still_participate_in_duplicate_detection(tmp_path, monkeypatch):
+    database = tmp_path / "jobagent.db"
+    monkeypatch.setattr(main, "connection", lambda: _isolated_connection(database))
+    monkeypatch.setattr(main, "load_json", lambda path: {
+        "preferences": {"preferred_terms": ["frontend", "software"]},
+        "career": {"skills": ["Angular", "TypeScript"]},
+    })
+    now = db.utcnow()
+    description = "Frontend softwareudvikling med Angular og TypeScript til en stabil kundeportal. " * 3
+    with _isolated_connection(database) as conn:
+        job_id = conn.execute(
+            """INSERT INTO jobs(
+                   source,source_job_id,source_url,title,employer,location,description,
+                   status,archived,discovered_at,updated_at
+               ) VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                "jobnet", "archived-duplicate-1", "https://jobnet.dk/find-job/archived-duplicate-1",
+                "Frontendudvikler", "Eksempel A/S", "København", description,
+                "shortlisted", 1, now, now,
+            ),
+        ).lastrowid
+
+    result = main._store_job({
+        "source": "jobnet",
+        "source_job_id": "archived-duplicate-1",
+        "source_url": "https://jobnet.dk/find-job/archived-duplicate-1",
+        "application_url": "https://example.com/apply/archived-duplicate-1",
+        "title": "Frontendudvikler",
+        "employer": "Eksempel A/S",
+        "location": "København",
+        "description": description,
+    }, initial_status="new")
+
+    assert result["duplicate"] is True
+    assert result["id"] == job_id
+    with _isolated_connection(database) as conn:
+        row = conn.execute(
+            "SELECT status,archived FROM jobs WHERE id=?", (job_id,)
+        ).fetchone()
+        count = conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
+    assert dict(row) == {"status": "shortlisted", "archived": 1}
+    assert count == 1
