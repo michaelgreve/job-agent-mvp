@@ -1,0 +1,35 @@
+{
+  "searches": [
+    {
+      "name": "Jobnet – indsæt din gemte søgning",
+      "source": "jobnet",
+      "url": "",
+      "enabled": false,
+      "link_patterns": ["/find-job/", "/CV/FindWork/", "jobannonce"],
+      "incremental": {
+        "enabled": true,
+        "checkpoint": {"kind": "published_at", "value": "", "committed_at": ""}
+      }
+    },
+    {
+      "name": "Jobindex – indsæt din gemte søgning",
+      "source": "jobindex",
+      "url": "",
+      "enabled": false,
+      "link_patterns": ["/vis-job/", "/jobannonce/", "/job/", "/c?t="],
+      "incremental": {
+        "enabled": false,
+        "checkpoint": {"kind": "", "value": "", "committed_at": ""}
+      }
+    }
+  ],
+  "scan": {
+    "max_results_per_search": 500,
+    "max_links_per_search": 80,
+    "max_load_more_clicks": 70,
+    "candidate_min_score": 10,
+    "minimum_score_to_store": 10,
+    "delay_seconds": 1.5,
+    "headless": true
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "person": {
+    "full_name": "",
+    "preferred_name": "",
+    "email": "",
+    "phone": "",
+    "address": "",
+    "postal_code": "",
+    "city": "",
+    "country": "Denmark"
+  },
+  "career": {
+    "headline": "Frontendudvikler og webkonsulent",
+    "summary": "Erfaren frontendudvikler med fokus på enkle og brugbare løsninger.",
+    "years_professional": 0,
+    "skills": [
+      "Angular",
+      "TypeScript",
+      "JavaScript",
+      "HTML",
+      "SCSS",
+      "RxJS",
+      "NgRx",
+      "Angular Material",
+      "frontendarkitektur",
+      "webudvikling",
+      "brugergrænseflader",
+      "fejlfinding",
+      "systemudvikling"
+    ],
+    "learning": ["Vue", "React", "Next.js", "Nuxt", "Docker", "PLC/automation"],
+    "experience_highlights": [],
+    "education": [],
+    "languages": [],
+    "drivers_license": ""
+  },
+  "preferences": {
+    "locations": ["København", "Storkøbenhavn", "Frederiksberg", "Lyngby", "Glostrup", "Roskilde"],
+    "remote_ok": true,
+    "preferred_terms": ["frontend", "webudvikler", "softwareudvikler", "Angular", "TypeScript", "JavaScript", "web", "UI", "praktisk", "teknisk support", "automation"],
+    "negative_terms": ["SAFe", "PI planning", "program increment", "burndown", "burn-up", "daily scrum", "certificeret Scrum Master", "rockstar", "ninja"],
+    "hard_reject_terms": ["ulønnet praktik", "commission only"],
+    "minimum_score": 45,
+    "application_style": "Kort, varm og konkret dansk ansøgning på cirka to afsnit. Ingen overdreven begejstring og ingen opfundne fakta."
+  },
+  "ai": {
+    "provider": "template",
+    "openai_model": "gpt-5-mini",
+    "openai_url": "https://api.openai.com/v1",
+    "ollama_model": "qwen3:8b",
+    "ollama_url": "http://localhost:11434",
+    "temperature": 0.2,
+    "max_output_tokens": 1600
+  },
+  "files": {
+    "default_cv": "",
+    "application_output": "data/generated"
+  }
+}

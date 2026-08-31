@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Michael's Jobagent</title>
+  <link rel="stylesheet" href="/static/style.css?v=0.2.6">
+</head>
+<body>
+  <header>
+    <div>
+      <p class="eyebrow">LOCAL-FIRST JOBSØGNING</p>
+      <h1>Michael's Jobagent</h1>
+      <p class="subtitle">Finder, sammenligner og klargør. Du bestemmer, hvad der bliver sendt.</p>
+    </div>
+    <div class="header-actions">
+      <button class="secondary" id="settingsBtn">Indstillinger</button>
+      <button class="secondary" id="exportBtn">Eksportér Joblog</button>
+      <button class="primary" id="scanBtn">Scan søgninger</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="stats" id="stats"></section>
+
+    <section class="toolbar card">
+      <div class="filters">
+        <div class="view-switch" role="group" aria-label="Jobliste">
+          <button type="button" class="view-btn active" id="activeViewBtn">Aktive <span id="activeViewCount">0</span></button>
+          <button type="button" class="view-btn" id="archiveViewBtn">Arkiv <span id="archiveViewCount">0</span></button>
+        </div>
+        <input id="searchFilter" placeholder="Filtrér titel eller virksomhed…">
+        <select id="statusFilter">
+          <option value="">Alle statusser</option>
+          <option value="new">Ny</option>
+          <option value="discovered">Fundet</option>
+          <option value="shortlisted">Kortlistet</option>
+          <option value="drafted">Udkast</option>
+          <option value="submitted">Sendt</option>
+          <option value="dismissed">Fravalgt</option>
+          <option value="rejected">Afslag</option>
+        </select>
+      </div>
+      <div>
+        <button class="secondary" id="historyBtn">Importér historik</button>
+        <button class="primary" id="addBtn">Tilføj job</button>
+      </div>
+    </section>
+
+    <section id="scanStatus" class="scan-status card hidden" aria-live="polite">
+      <div id="scanIcon" class="scan-icon"><span class="spinner"></span></div>
+      <div class="scan-body">
+        <div class="scan-topline"><strong id="scanMessage">Scanner…</strong><span id="scanCounts"></span></div>
+        <progress id="scanProgress" max="1"></progress>
+        <div id="scanCurrent" class="scan-current"></div>
+        <div id="scanError" class="scan-error-text hidden"></div>
+      </div>
+    </section>
+
+    <section class="layout">
+      <div class="card list-card">
+        <table>
+          <thead><tr><th>Score</th><th>Stilling</th><th>Virksomhed</th><th>Status</th><th>Kilde</th></tr></thead>
+          <tbody id="jobRows"></tbody>
+        </table>
+        <div id="empty" class="empty hidden">Ingen job matcher filteret.</div>
+      </div>
+      <aside class="card detail" id="detail">
+        <div class="empty">Vælg et job for at se detaljerne.</div>
+      </aside>
+    </section>
+  </main>
+
+  <dialog id="addDialog">
+    <form method="dialog" id="addForm">
+      <div class="dialog-head"><h2>Tilføj job</h2><button value="cancel" class="icon">×</button></div>
+      <label>Annonce-URL<input name="url" type="url" placeholder="https://…"></label>
+      <p class="hint">URL er nok i de fleste tilfælde. Brug felterne nedenfor som fallback.</p>
+      <div class="two-col">
+        <label>Titel<input name="title"></label>
+        <label>Virksomhed<input name="employer"></label>
+      </div>
+      <label>Sted<input name="location"></label>
+      <label>Annoncebeskrivelse<textarea name="description" rows="8"></textarea></label>
+      <div class="dialog-actions"><button value="cancel" class="secondary">Annullér</button><button type="submit" value="default" class="primary">Importér</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="settingsDialog" class="wide">
+    <form method="dialog" id="settingsForm">
+      <div class="dialog-head"><h2>Indstillinger</h2><button value="cancel" class="icon">×</button></div>
+      <div class="tabs"><button type="button" class="tab active" data-tab="profile">Profil</button><button type="button" class="tab" data-tab="searches">Søgninger</button><button type="button" class="tab" data-tab="ai">AI og ansøgninger</button><button type="button" class="tab" data-tab="maintenance">Vedligeholdelse</button></div>
+      <div class="tab-panel active" data-panel="profile">
+        <div class="two-col">
+          <label>Navn<input id="profileName"></label>
+          <label>E-mail<input id="profileEmail" type="email"></label>
+          <label>Telefon<input id="profilePhone"></label>
+          <label>By<input id="profileCity"></label>
+        </div>
+        <label>Faglig overskrift<input id="profileHeadline"></label>
+        <label>Kort profil<textarea id="profileSummary" rows="4"></textarea></label>
+        <label>Kompetencer, kommasepareret<textarea id="profileSkills" rows="3"></textarea></label>
+        <label>Ord der giver pluspoint<textarea id="profilePreferred" rows="3"></textarea></label>
+        <label>Advarselsord, der giver minuspoint<textarea id="profileNegative" rows="3"></textarea></label>
+        <label>Standard-CV<select id="defaultCv"></select></label>
+        <details><summary>Avanceret profil-JSON</summary><label>Profil (JSON)<textarea id="profileJson" rows="18" spellcheck="false"></textarea></label></details>
+      </div>
+      <div class="tab-panel" data-panel="searches">
+        <p class="hint">Lav en søgning på Jobnet og Jobindex i din normale browser, kopiér resultat-URL'en og indsæt den her. Agenten læser kun offentlige søgeresultater. Et <strong>scanningskontrolpunkt</strong> er den generelle lokale markør for, hvor langt en søgning nåede ved sidste komplette kørsel. Jobnet bruger opslagets publiceringsdato; andre kilder kan senere få deres egen sikre strategi.</p>
+        <div id="searchEntries"></div>
+        <details><summary>Avancerede scannerindstillinger</summary><label>Søgninger (JSON)<textarea id="searchesJson" rows="18" spellcheck="false"></textarea></label></details>
+      </div>
+      <div class="tab-panel" data-panel="ai">
+        <label>Ansøgningsgenerator
+          <select id="aiProvider">
+            <option value="template">Ingen AI — skabelon</option>
+            <option value="openai">OpenAI API</option>
+            <option value="ollama">Lokal Ollama</option>
+            <option value="clipboard">Send til Maya</option>
+          </select>
+        </label>
+        <div class="provider-explainer" id="providerExplainer"></div>
+
+        <section class="provider-panel" data-provider-panel="openai">
+          <h3>OpenAI API</h3>
+          <div class="two-col">
+            <label>Model<input id="openaiModel" placeholder="gpt-5-mini"></label>
+            <label>API-adresse<input id="openaiUrl" placeholder="https://api.openai.com/v1"></label>
+          </div>
+          <p class="hint">Nøglen gemmes ikke i browseren. Sæt <code>OPENAI_API_KEY</code> i projektets lokale <code>.env</code>-fil og genstart appen.</p>
+          <button type="button" class="secondary" id="testOpenaiBtn">Test OpenAI-forbindelse</button>
+        </section>
+
+        <section class="provider-panel" data-provider-panel="ollama">
+          <h3>Lokal Ollama</h3>
+          <div class="two-col">
+            <label>Ollama-adresse<input id="ollamaUrl" placeholder="http://localhost:11434"></label>
+            <label>Model<select id="ollamaModel"><option value="">Ingen modeller hentet endnu</option></select></label>
+          </div>
+          <div class="inline-actions"><button type="button" class="secondary" id="refreshOllamaBtn">Find lokale modeller</button><button type="button" class="secondary" id="testOllamaBtn">Test Ollama</button></div>
+        </section>
+
+        <section class="provider-panel" data-provider-panel="clipboard">
+          <h3>Send til Maya</h3>
+          <p class="hint">Når du trykker <strong>Lav ansøgning</strong>, laver appen en komplet pakke med annoncen, matchforklaringen, din faktaprofil og skriveønskerne. Du kopierer den hertil, og indsætter derefter den færdige tekst tilbage i appen.</p>
+        </section>
+
+        <section class="provider-panel" data-provider-panel="template">
+          <h3>Skabelon</h3>
+          <p class="hint">Virker uden AI og uden forbindelse, men bruger kun simpel nøgleordsmatching. Den er fallback, ikke tryllestøv.</p>
+        </section>
+        <div id="aiConnectionStatus" class="connection-status hidden" aria-live="polite"></div>
+      </div>
+      <div class="tab-panel" data-panel="maintenance">
+        <h3>Vedligeholdelse</h3>
+        <p class="hint">Her bor de knapper, man helst ikke kommer til at trykke på ved et uheld.</p>
+        <section class="danger-zone">
+          <h3>Farezone</h3>
+          <p><strong>Nulstil jobdatabasen</strong></p>
+          <p class="hint">Sletter alle fundne job, historiske ansøgninger, udkast, statusser og hændelser. Scanningskontrolpunkter nulstilles også, så næste kørsel starter fra begyndelsen. Profil, søge-URL'er, CV-filer, AI-indstillinger og browserlogin bevares.</p>
+          <label>Bekræft ved at skrive <code>NULSTIL</code><input id="resetConfirmation" autocomplete="off" spellcheck="false" placeholder="NULSTIL"></label>
+          <button type="button" class="danger" id="resetDatabaseBtn" disabled>Nulstil jobdatabasen</button>
+        </section>
+      </div>
+      <div class="dialog-actions"><button value="cancel" class="secondary">Annullér</button><button type="submit" value="default" class="primary">Gem</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="mayaDialog" class="wide">
+    <form method="dialog" id="mayaForm">
+      <div class="dialog-head"><h2>Send ansøgningspakken til Maya</h2><button value="cancel" class="icon">×</button></div>
+      <ol class="handoff-steps">
+        <li>Kopiér pakken og indsæt den i vores ChatGPT-samtale.</li>
+        <li>Indsæt den færdige ansøgning i nederste felt.</li>
+        <li>Gem den som det aktuelle udkast.</li>
+      </ol>
+      <label>Pakke til ChatGPT<textarea id="mayaPrompt" rows="16" readonly spellcheck="false"></textarea></label>
+      <button type="button" class="secondary" id="copyMayaPromptBtn">Kopiér pakken</button>
+      <label>Færdig ansøgning fra Maya<textarea id="mayaResponse" rows="13" placeholder="Indsæt den færdige ansøgning her…"></textarea></label>
+      <div class="dialog-actions"><button value="cancel" class="secondary">Luk</button><button type="button" class="primary" id="saveMayaDraftBtn">Gem som udkast</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="historyDialog">
+    <form method="dialog" id="historyForm">
+      <div class="dialog-head"><h2>Importér tidligere ansøgninger</h2><button value="cancel" class="icon">×</button></div>
+      <p>CSV-filen må gerne have kolonner som <code>Ansøgningsdato</code>, <code>Arbejdsgiver</code>, <code>Stilling</code>, <code>URL</code> og <code>Sted</code>. Agenten bruger dem til at forhindre dobbeltansøgninger.</p>
+      <label>CSV-fil<input type="file" name="file" accept=".csv,text/csv" required></label>
+      <div class="dialog-actions"><button value="cancel" class="secondary">Annullér</button><button type="submit" value="default" class="primary">Importér</button></div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="/static/app.js?v=0.2.6"></script>
+</body>
+</html>
