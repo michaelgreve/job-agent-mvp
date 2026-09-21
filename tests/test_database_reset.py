@@ -5,7 +5,7 @@ import sqlite3
 
 import pytest
 
-from jobagent import db, main
+from jobagent import config, db, main
 from jobagent.config import DEFAULT_PROFILE
 
 
@@ -165,6 +165,7 @@ def test_legacy_database_migration_preserves_jobs_status_archive_drafts_and_sour
     profile_path = tmp_path / "profile.json"
     profile_path.write_text(json.dumps(DEFAULT_PROFILE), encoding="utf-8")
     monkeypatch.setattr(main, "PROFILE_PATH", profile_path)
+    monkeypatch.setattr(config, "ensure_data_files", lambda: None)
     assert main._rescore_all_jobs(force=False) == 1
     with db.connection() as conn:
         rescored = conn.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()

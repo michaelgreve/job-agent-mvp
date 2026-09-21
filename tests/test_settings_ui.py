@@ -38,6 +38,7 @@ def settings(browser, monkeypatch, tmp_path):
     monkeypatch.setattr(main, "CV_DIR", tmp_path / "cv")
     (tmp_path / "cv").mkdir()
     monkeypatch.setattr(config, "ensure_data_files", lambda: None)
+    monkeypatch.setattr(main, "ensure_data_files", lambda: None)
     monkeypatch.setattr(main, "_rescore_all_jobs", lambda *args, **kwargs: None)
     requests = []
     client = TestClient(main.app)

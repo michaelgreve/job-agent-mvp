@@ -55,6 +55,7 @@ def test_bms_cts_trainee_has_modest_qualification_high_direction_and_survives_fi
     assert result.dimension("curiosity") >= 70
     assert should_retain(result)
     assert is_prefilter_candidate(result)
+    assert any(track["title_matches"] for track in result.details["matched_career_tracks"])
 
 
 def test_automation_trade_requirement_penalizes_qualification_but_not_direction():
