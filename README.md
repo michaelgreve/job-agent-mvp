@@ -172,6 +172,8 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\start.ps1
 ```
 
+Git Bash users can also run `./setup.sh` and `./start.sh`. Setup checks versioned Python commands, then `python3` and `python`, and requires Python 3.11–3.14 on `PATH`. If setup cannot find Python, check `python --version` and `python3 --version` in the same terminal, then reopen the terminal after installing Python or changing `PATH`. WSL requires Python installed inside the Linux environment.
+
 ## Setup on another computer
 
 Clone the repository and run the setup command for the operating system above. On first start, the app creates local `data/profile.json` and `data/searches.json` files from the safe example configuration. Fill in the local profile and search URLs in the dashboard, copy the desired CV into `data/cv/`, and create a local `.env` only when an API provider is needed.

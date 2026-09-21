@@ -9,13 +9,10 @@ fail() {
 trap fail ERR
 
 find_python() {
-  local candidate version major minor
-  for candidate in python3.14 python3.13 python3.12 python3.11 python3; do
+  local candidate
+  for candidate in python3.14 python3.13 python3.12 python3.11 python3 python; do
     if command -v "$candidate" >/dev/null 2>&1; then
-      version="$($candidate -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || true)"
-      major="${version%%.*}"
-      minor="${version#*.}"
-      if [ "$major" = "3" ] && [ "$minor" -ge 11 ] && [ "$minor" -le 14 ]; then
+      if "$candidate" -c 'import sys; sys.exit(not ((3, 11) <= sys.version_info[:2] < (3, 15)))' >/dev/null 2>&1; then
         printf '%s' "$candidate"
         return 0
       fi
@@ -27,11 +24,12 @@ find_python() {
 PYTHON_BIN="$(find_python || true)"
 if [ -z "$PYTHON_BIN" ]; then
   printf 'Jobagenten kræver Python 3.11–3.14.\n'
-  printf 'Installér en understøttet Python-version og kør setup.command igen.\n'
+  printf 'Installér en understøttet Python-version, sørg for at den er på PATH, og kør ./setup.sh igen.\n'
+  printf 'På Windows kan du også bruge .\\setup.ps1 i PowerShell.\n'
   exit 1
 fi
 
-PYTHON_VERSION="$($PYTHON_BIN -c 'import platform; print(platform.python_version())')"
+PYTHON_VERSION="$("$PYTHON_BIN" -c 'import platform; print(platform.python_version())' | tr -d '\r')"
 printf 'Bruger %s (%s)\n' "$PYTHON_BIN" "$PYTHON_VERSION"
 
 # A failed installation can leave a half-built environment behind. Recreating
@@ -42,11 +40,14 @@ if [ -d .venv ]; then
 fi
 
 "$PYTHON_BIN" -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip setuptools wheel
-python -m pip install --prefer-binary -r requirements.txt
-python -m playwright install chromium
-python -m pytest -q
+VENV_PYTHON=.venv/bin/python
+if [ -f .venv/Scripts/python.exe ]; then
+  VENV_PYTHON=.venv/Scripts/python.exe
+fi
+"$VENV_PYTHON" -m pip install --upgrade pip setuptools wheel
+"$VENV_PYTHON" -m pip install --prefer-binary -r requirements.txt
+"$VENV_PYTHON" -m playwright install chromium
+"$VENV_PYTHON" -m pytest -q
 
 touch .setup-complete
 trap - ERR
