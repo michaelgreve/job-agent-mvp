@@ -88,7 +88,7 @@
 
   <dialog id="settingsDialog" class="wide">
     <form method="dialog" id="settingsForm">
-      <div class="dialog-head"><h2>Indstillinger</h2><button value="cancel" class="icon">×</button></div>
+      <div class="dialog-head"><h2>Indstillinger</h2><button value="cancel" class="icon" formnovalidate>×</button></div>
       <div class="tabs"><button type="button" class="tab active" data-tab="profile">Profil</button><button type="button" class="tab" data-tab="searches">Søgninger</button><button type="button" class="tab" data-tab="ai">AI og ansøgninger</button><button type="button" class="tab" data-tab="maintenance">Vedligeholdelse</button></div>
       <div class="tab-panel active" data-panel="profile">
         <div class="two-col">
@@ -162,7 +162,8 @@
           <button type="button" class="danger" id="resetDatabaseBtn" disabled>Nulstil jobdatabasen</button>
         </section>
       </div>
-      <div class="dialog-actions"><button value="cancel" class="secondary">Annullér</button><button type="submit" value="default" class="primary">Gem</button></div>
+      <div id="settingsError" class="connection-status error hidden" role="alert"></div>
+      <div class="dialog-actions"><button value="cancel" class="secondary" formnovalidate>Annullér</button><button type="submit" value="default" class="primary">Gem</button></div>
     </form>
   </dialog>
 
@@ -191,6 +192,6 @@
   </dialog>
 
   <div id="toast" class="toast hidden"></div>
-  <script src="/static/app.js?v=0.2.8"></script>
+  <script src="/static/app.js?v=0.2.8-settings-json"></script>
 </body>
 </html>

@@ -246,33 +246,67 @@ function formatCheckpoint(value){
   const date=new Date(value); if(Number.isNaN(date.getTime())) return value;
   return date.toLocaleString('da-DK',{dateStyle:'medium',timeStyle:'short'});
 }
-function syncSearchJsonFromState(){
-  $('#searchesJson').value=JSON.stringify(state.config.searches,null,2);
+function parseSettingsJson(selector){
+  const value=JSON.parse($(selector).value);
+  const isObject=x=>x!==null && typeof x==='object' && !Array.isArray(x);
+  if(!isObject(value)) throw new Error('JSON skal være et objekt.');
+  if(selector==='#profileJson'){
+    for(const key of ['person','career','preferences','files','ai']){
+      if(value[key]!==undefined && !isObject(value[key])) throw new Error(`${key} skal være et objekt.`);
+    }
+    for(const [group,key] of [['career','skills'],['preferences','preferred_terms'],['preferences','negative_terms']]){
+      if(value[group]?.[key]!==undefined && (!Array.isArray(value[group][key]) || !value[group][key].every(x=>typeof x==='string'))) throw new Error(`${group}.${key} skal være en liste med tekst.`);
+    }
+  }else{
+    if(!Array.isArray(value.searches) || !value.searches.every(isObject)) throw new Error('searches skal være en liste med søgeobjekter.');
+    for(const search of value.searches){
+      if(search.incremental!==undefined && !isObject(search.incremental)) throw new Error('incremental skal være et objekt.');
+      if(search.incremental?.checkpoint!==undefined && !isObject(search.incremental.checkpoint)) throw new Error('checkpoint skal være et objekt.');
+    }
+  }
+  return value;
+}
+function settingsError(message=''){
+  $('#settingsError').textContent=message;
+  $('#settingsError').classList.toggle('hidden',!message);
 }
 function resetSearchCheckpoint(index){
-  const search=state.config.searches.searches?.[index]; if(!search) return;
+  let searches;
+  try{searches=parseSettingsJson('#searchesJson')}catch(err){settingsError(err.message);return}
+  const search=searches.searches[index]; if(!search) return;
   search.incremental=search.incremental||{};
   search.incremental.checkpoint={...(search.incremental.checkpoint||{}),value:'',committed_at:''};
-  syncSearchJsonFromState();
+  $('#searchesJson').value=JSON.stringify(searches,null,2);
+  settingsError();
   const button=document.querySelector(`[data-reset-checkpoint="${index}"]`);
   if(button){button.disabled=true; const label=button.parentElement?.querySelector('strong'); if(label) label.textContent='Ikke sat endnu';}
   toast('Scanningskontrolpunktet er nulstillet. Gem indstillingerne for at bekræfte.');
 }
 
-function populateSettings(){
-  const p=state.config.profile, person=p.person||{}, career=p.career||{}, prefs=p.preferences||{};
+function populateProfileSettings(p){
+  const person=p.person||{}, career=p.career||{}, prefs=p.preferences||{};
   $('#profileName').value=person.full_name||''; $('#profileEmail').value=person.email||''; $('#profilePhone').value=person.phone||''; $('#profileCity').value=person.city||'';
   $('#profileHeadline').value=career.headline||''; $('#profileSummary').value=career.summary||''; $('#profileSkills').value=(career.skills||[]).join(', '); $('#profilePreferred').value=(prefs.preferred_terms||[]).join(', '); $('#profileNegative').value=(prefs.negative_terms||[]).join(', ');
-  $('#profileJson').value=JSON.stringify(p,null,2); $('#searchesJson').value=JSON.stringify(state.config.searches,null,2);
-  $('#defaultCv').innerHTML=`<option value="">Intet valgt</option>`+(state.config.cv_files||[]).map(f=>`<option value="${esc(f)}">${esc(f)}</option>`).join(''); $('#defaultCv').value=p.files?.default_cv||'';
-  $('#searchEntries').innerHTML=(state.config.searches.searches||[]).map((x,i)=>{
+  const cvFiles=[...new Set([...(state.config.cv_files||[]),p.files?.default_cv].filter(Boolean))];
+  $('#defaultCv').innerHTML=`<option value="">Intet valgt</option>`+cvFiles.map(f=>`<option value="${esc(f)}">${esc(f)}</option>`).join(''); $('#defaultCv').value=p.files?.default_cv||'';
+  const ai=p.ai||{}; $('#aiProvider').value=ai.provider||'template'; $('#openaiModel').value=ai.openai_model||'gpt-5-mini'; $('#openaiUrl').value=ai.openai_url||'https://api.openai.com/v1'; $('#ollamaUrl').value=ai.ollama_url||'http://localhost:11434'; setOllamaModels([],ai.ollama_model||'qwen3:8b');
+  refreshProviderPanels();
+}
+function populateSearchSettings(searches){
+  $('#searchEntries').innerHTML=(searches.searches||[]).map((x,i)=>{
     const incremental=x.incremental||{}, checkpoint=incremental.checkpoint||{};
     const supported=String(x.source||'').toLowerCase()==='jobnet';
     return `<div class="search-entry card"><label><input type="checkbox" data-search-enabled="${i}" ${x.enabled?'checked':''}> Aktivér ${esc(x.source)}</label><label>Navn<input data-search-name="${i}" value="${esc(x.name)}"></label><label>Søgeresultat-URL<input type="url" data-search-url="${i}" value="${esc(x.url||'')}" placeholder="https://…"></label><label class="checkpoint-toggle"><input type="checkbox" data-search-incremental="${i}" ${incremental.enabled?'checked':''} ${supported?'':'disabled'}> Kun nye opslag siden sidste fuldførte scanning</label><div class="checkpoint-row"><span>Scanningskontrolpunkt: <strong>${esc(formatCheckpoint(checkpoint.value))}</strong>${supported?'':' · endnu ikke understøttet for denne kilde'}</span><button type="button" class="secondary compact" data-reset-checkpoint="${i}" ${checkpoint.value?'':'disabled'}>Nulstil kontrolpunkt</button></div></div>`;
   }).join('');
   document.querySelectorAll('[data-reset-checkpoint]').forEach(btn=>btn.onclick=()=>resetSearchCheckpoint(Number(btn.dataset.resetCheckpoint)));
-  const ai=p.ai||{}; $('#aiProvider').value=ai.provider||'template'; $('#openaiModel').value=ai.openai_model||'gpt-5-mini'; $('#openaiUrl').value=ai.openai_url||'https://api.openai.com/v1'; $('#ollamaUrl').value=ai.ollama_url||'http://localhost:11434'; setOllamaModels([],ai.ollama_model||'qwen3:8b');
-  $('#resetConfirmation').value=''; $('#resetDatabaseBtn').disabled=true; $('#aiConnectionStatus').classList.add('hidden'); refreshProviderPanels();
+}
+function populateSettings(){
+  $('#profileJson').value=JSON.stringify(state.config.profile,null,2);
+  $('#searchesJson').value=JSON.stringify(state.config.searches,null,2);
+  populateProfileSettings(state.config.profile);
+  populateSearchSettings(state.config.searches);
+  settingsError();
+  $('#resetConfirmation').value=''; $('#resetDatabaseBtn').disabled=true; $('#aiConnectionStatus').classList.add('hidden');
 }
 
 $('#aiProvider').onchange=refreshProviderPanels;
@@ -318,16 +352,33 @@ $('#resetDatabaseBtn').onclick=async()=>{
   }catch(err){toast(err.message,true,8000)}finally{btn.textContent='Nulstil jobdatabasen';$('#resetConfirmation').value='';btn.disabled=true}
 };
 $('#settingsBtn').onclick=async()=>{state.config=await api('/api/config');populateSettings();$('#settingsDialog').showModal()};
-$('#settingsForm').onsubmit=async e=>{e.preventDefault();try{
-  let profile=JSON.parse($('#profileJson').value); let searches=JSON.parse($('#searchesJson').value);
-  profile.person={...(profile.person||{}),full_name:$('#profileName').value,email:$('#profileEmail').value,phone:$('#profilePhone').value,city:$('#profileCity').value};
-  profile.career={...(profile.career||{}),headline:$('#profileHeadline').value,summary:$('#profileSummary').value,skills:csvList($('#profileSkills').value)};
-  profile.preferences={...(profile.preferences||{}),preferred_terms:csvList($('#profilePreferred').value),negative_terms:csvList($('#profileNegative').value)};
-  profile.files={...(profile.files||{}),default_cv:$('#defaultCv').value};
-  profile.ai={...(profile.ai||{}),provider:$('#aiProvider').value,...aiConfigFromForm()};
-  searches.searches=(searches.searches||[]).map((x,i)=>({...x,enabled:document.querySelector(`[data-search-enabled="${i}"]`)?.checked||false,name:document.querySelector(`[data-search-name="${i}"]`)?.value||x.name,url:document.querySelector(`[data-search-url="${i}"]`)?.value||'',incremental:{...(x.incremental||{}),enabled:document.querySelector(`[data-search-incremental="${i}"]`)?.checked||false,checkpoint:{...(x.incremental?.checkpoint||{}),kind:String(x.source||'').toLowerCase()==='jobnet'?'published_at':(x.incremental?.checkpoint?.kind||'')}}}));
+$('#settingsForm').oninput=e=>{try{
+  const input=e.target;
+  if(input.id==='profileJson'){
+    populateProfileSettings(parseSettingsJson('#profileJson'));
+  }else if(input.id==='searchesJson'){
+    populateSearchSettings(parseSettingsJson('#searchesJson'));
+  }else if(input.closest('[data-panel="profile"], [data-panel="ai"]')){
+    const profile=parseSettingsJson('#profileJson');
+    profile.person={...(profile.person||{}),full_name:$('#profileName').value,email:$('#profileEmail').value,phone:$('#profilePhone').value,city:$('#profileCity').value};
+    profile.career={...(profile.career||{}),headline:$('#profileHeadline').value,summary:$('#profileSummary').value,skills:csvList($('#profileSkills').value)};
+    profile.preferences={...(profile.preferences||{}),preferred_terms:csvList($('#profilePreferred').value),negative_terms:csvList($('#profileNegative').value)};
+    profile.files={...(profile.files||{}),default_cv:$('#defaultCv').value};
+    profile.ai={...(profile.ai||{}),provider:$('#aiProvider').value,...aiConfigFromForm()};
+    $('#profileJson').value=JSON.stringify(profile,null,2);
+  }else if(input.closest('#searchEntries')){
+    const searches=parseSettingsJson('#searchesJson');
+    searches.searches=searches.searches.map((x,i)=>({...x,enabled:document.querySelector(`[data-search-enabled="${i}"]`).checked,name:document.querySelector(`[data-search-name="${i}"]`).value,url:document.querySelector(`[data-search-url="${i}"]`).value,incremental:{...(x.incremental||{}),enabled:document.querySelector(`[data-search-incremental="${i}"]`).checked,checkpoint:{...(x.incremental?.checkpoint||{}),kind:String(x.source||'').toLowerCase()==='jobnet'?'published_at':(x.incremental?.checkpoint?.kind||'')}}}));
+    $('#searchesJson').value=JSON.stringify(searches,null,2);
+  }
+  settingsError();
+}catch(err){settingsError(`Ugyldige indstillinger: ${err.message}`)}};
+$('#settingsForm').onsubmit=async e=>{e.preventDefault();
+  if(e.submitter?.value==='cancel'){$('#settingsDialog').close();return}
+  try{
+  const profile=parseSettingsJson('#profileJson'), searches=parseSettingsJson('#searchesJson');
   await api('/api/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({profile,searches})}); $('#settingsDialog').close(); toast('Indstillinger gemt og job genberegnet'); await loadJobs();
-}catch(err){toast(`Ugyldige indstillinger: ${err.message}`,true)}};
+}catch(err){settingsError(`Ugyldige indstillinger: ${err.message}`)}};
 document.querySelectorAll('.tab').forEach(btn=>btn.onclick=()=>{document.querySelectorAll('.tab,.tab-panel').forEach(x=>x.classList.remove('active'));btn.classList.add('active');document.querySelector(`[data-panel="${btn.dataset.tab}"]`).classList.add('active')});
 loadJobs().catch(e=>toast(e.message,true));
 pollScanStatus();
