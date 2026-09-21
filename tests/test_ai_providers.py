@@ -22,8 +22,12 @@ JOB = {
     "location": "København",
     "description": "Vi søger en Angular-udvikler til TypeScript, RxJS og brugbare grænseflader.",
     "score": 78,
+    "qualification_score": 91,
+    "direction_score": 65,
+    "curiosity_score": 72,
     "score_details": {
         "recommendation": "Stærkt match",
+        "matched_career_tracks": [{"id": "frontend_software", "label": "Frontend / software"}],
         "positive_reasons": [{"label": "Angular", "points": 20}],
     },
 }
@@ -73,7 +77,13 @@ def test_prompt_contains_job_profile_and_factual_boundaries():
     assert "Angular" in prompt
     assert "Currently learning" in prompt
     assert "Opfind ikke" in prompt
-    assert '"score": 78' in prompt
+    assert '"overall_score": 78' in prompt
+    assert '"qualification_score": 91' in prompt
+    assert '"direction_score": 65' in prompt
+    assert '"curiosity_score": 72' in prompt
+    assert '"matched_career_tracks"' in prompt
+    assert "Cykelværksted og reparation gennem Nytteindsats" in prompt
+    assert "Nævn ikke jobscore" in prompt
 
 
 def test_generated_application_defaults_lists_safely():

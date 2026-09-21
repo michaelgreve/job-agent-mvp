@@ -26,16 +26,19 @@ def browser():
 def settings(browser, monkeypatch, tmp_path):
     profile_path = tmp_path / "profile.json"
     searches_path = tmp_path / "searches.json"
+    scoring_path = tmp_path / "scoring.json"
     profile = deepcopy(config.DEFAULT_PROFILE)
     profile["person"]["full_name"] = "Original name"
     profile_path.write_text(json.dumps(profile), encoding="utf-8")
     searches_path.write_text(json.dumps(config.DEFAULT_SEARCHES), encoding="utf-8")
+    scoring_path.write_text(json.dumps(main.scoring_config()), encoding="utf-8")
     monkeypatch.setattr(main, "PROFILE_PATH", profile_path)
     monkeypatch.setattr(main, "SEARCHES_PATH", searches_path)
+    monkeypatch.setattr(main, "SCORING_PATH", scoring_path)
     monkeypatch.setattr(main, "CV_DIR", tmp_path / "cv")
     (tmp_path / "cv").mkdir()
     monkeypatch.setattr(config, "ensure_data_files", lambda: None)
-    monkeypatch.setattr(main, "_rescore_all_jobs", lambda: None)
+    monkeypatch.setattr(main, "_rescore_all_jobs", lambda *args, **kwargs: None)
     requests = []
     client = TestClient(main.app)
 
@@ -51,6 +54,24 @@ def settings(browser, monkeypatch, tmp_path):
             route.fulfill(status=response.status_code, json=response.json())
         elif path == "/api/jobs":
             route.fulfill(json={"jobs": [], "counts": {}})
+        elif path == "/api/jobs/1":
+            details = {
+                "qualification_score": 91, "direction_score": 42, "curiosity_score": 67,
+                "recommendation": "Interessant",
+                "summary": "Dimensionstest",
+                "matched_career_tracks": [{"id": "frontend_software", "label": "Frontend / software"}],
+                "reasons_by_dimension": {
+                    "qualification": [{"label": "Angular", "points": 20}],
+                    "direction": [{"label": "Ren software", "points": -10}],
+                    "curiosity": [{"label": "IoT", "points": 15}],
+                },
+            }
+            route.fulfill(json={"job": {
+                "id": 1, "title": "A", "employer": "Test", "location": "København",
+                "description": "Beskrivelse", "source": "manual", "status": "new", "score": 62,
+                "qualification_score": 91, "direction_score": 42, "curiosity_score": 67,
+                "score_details": json.dumps(details), "archived": 0,
+            }, "drafts": [], "sources": []})
         elif path == "/api/search/scan/status":
             route.fulfill(json={"phase": "idle", "running": False})
         elif path.startswith("/static/"):
@@ -196,3 +217,42 @@ def test_save_failure_is_visible_inside_dialog(settings):
     expect(page.locator("#settingsDialog")).to_be_visible()
     expect(page.locator("#profileName")).to_have_value("Unsaved edit")
     assert not requests
+
+
+def test_score_sort_filters_and_dimension_details(settings):
+    page, _, _, _ = settings
+    page.locator('#settingsForm .dialog-actions button[value="cancel"]').click()
+    page.evaluate("""state.jobs=[
+      {id:1,title:'A',employer:'Test',location:'',source:'manual',status:'new',archived:0,score:62,qualification_score:91,direction_score:42,curiosity_score:67},
+      {id:2,title:'B',employer:'Test',location:'',source:'manual',status:'new',archived:0,score:70,qualification_score:40,direction_score:88,curiosity_score:50}
+    ]; renderRows();""")
+    expect(page.locator("#jobRows tr").first).to_contain_text("B")
+    page.locator("#scoreSort").select_option("qualification_score")
+    expect(page.locator("#jobRows tr").first).to_contain_text("A")
+    page.locator("#directionFilter").fill("50")
+    expect(page.locator("#jobRows tr")).to_have_count(1)
+    expect(page.locator("#jobRows tr").first).to_contain_text("B")
+    page.locator("#directionFilter").fill("")
+    page.locator('#jobRows tr[data-id="1"]').click()
+    expect(page.locator(".dimension-scores")).to_contain_text("91")
+    expect(page.locator(".dimension-scores")).to_contain_text("42")
+    expect(page.locator(".dimension-scores")).to_contain_text("67")
+    expect(page.locator(".dimension-reasons")).to_have_count(3)
+    expect(page.locator(".track-list")).to_contain_text("Frontend / software")
+
+
+def test_scoring_json_is_validated_saved_and_returned(settings):
+    page, requests, _, _ = settings
+    page.locator('[data-tab="scoring"]').click()
+    editor = page.locator("#scoringJson")
+    scoring = json.loads(editor.input_value())
+    scoring["overall_score"]["formula"] = {
+        "qualification": 0.2, "direction": 0.6, "curiosity": 0.2,
+    }
+    scoring["retention_rules"]["store_if_any"][0]["gte"] = 35
+    editor.fill(json.dumps(scoring))
+    save(page)
+    assert requests[-1]["scoring"] == scoring
+    page.locator("#settingsBtn").click()
+    page.locator('[data-tab="scoring"]').click()
+    assert json.loads(editor.input_value()) == scoring

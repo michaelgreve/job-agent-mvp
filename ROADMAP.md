@@ -7,6 +7,15 @@
 
 # Roadmap
 
+## Completed in 0.3.0
+
+- Added Qualification, Direction, Curiosity and weighted Overall scores.
+- Added a non-destructive database migration and automatic rescoring of older records.
+- Reworked scan retention so any configured dimension threshold can keep a job.
+- Evaluated all structured Jobnet cards and broadened the Jobindex candidate prefilter.
+- Added score sorting, dimension filters, grouped explanations and four-score job details.
+- Added multidimensional matching context to every application-generation provider.
+
 ## Completed in 0.2.8
 
 - Replaced the personal handoff branding with a provider-neutral **Send til AI-agent** workflow.

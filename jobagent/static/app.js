@@ -1,6 +1,6 @@
 let state = {
   jobs: [], selected: null, config: null, scanTimer: null, scanWasRunning: false,
-  handoffJobId: null, view: 'active', activeCount: 0, archivedCount: 0,
+  handoffJobId: null, view: 'active', activeCount: 0, archivedCount: 0, scoreSort: 'score',
 };
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -25,8 +25,8 @@ function detailsOf(value){
 }
 function recommendationClass(label=''){
   const lower=label.toLowerCase();
-  if(lower.includes('stærkt')) return 'strong';
-  if(lower.includes('muligt')) return 'possible';
+  if(lower.includes('stærk')||lower.includes('høj prioritet')) return 'strong';
+  if(lower.includes('muligt')||lower.includes('interessant')) return 'possible';
   return 'weak';
 }
 async function copyText(text){
@@ -63,11 +63,13 @@ function setJobView(view){
 }
 function renderRows(){
   const q=$('#searchFilter').value.toLowerCase(); const st=$('#statusFilter').value;
+  const minimums={qualification_score:Number($('#qualificationFilter').value||0),direction_score:Number($('#directionFilter').value||0),curiosity_score:Number($('#curiosityFilter').value||0)};
   const jobs=state.jobs.filter(j=>{
     const archived=Boolean(Number(j.archived||0));
     const inView=state.view==='archive'?archived:!archived;
-    return inView&&(!st||j.status===st)&&(`${j.title} ${j.employer}`.toLowerCase().includes(q));
-  });
+    return inView&&(!st||j.status===st)&&(`${j.title} ${j.employer}`.toLowerCase().includes(q))
+      &&Object.entries(minimums).every(([key,value])=>Number(j[key]||0)>=value);
+  }).sort((a,b)=>Number(b[state.scoreSort]??-1)-Number(a[state.scoreSort]??-1)||Number(b.score??-1)-Number(a.score??-1));
   $('#empty').textContent=state.view==='archive'?'Arkivet er tomt eller matcher ikke filteret.':'Ingen aktive job matcher filteret.';
   $('#empty').classList.toggle('hidden',jobs.length>0);
   $('#jobRows').innerHTML=jobs.map(j=>{
@@ -91,6 +93,15 @@ function reasonRows(items=[], positive=true){
     return `<div class="reason-row ${positive?'positive':'negative'}"><span>${esc(item.label)}</span><strong>${esc(sign)}</strong></div>`;
   }).join('');
 }
+const dimensionNames={qualification:'Kvalifikation',direction:'Retning',curiosity:'Nysgerrighed'};
+function dimensionReasonMarkup(details){
+  const grouped=details.reasons_by_dimension||{};
+  return Object.entries(dimensionNames).map(([key,label])=>{
+    const items=grouped[key]||[];
+    if(!items.length) return '';
+    return `<section class="dimension-reasons"><h4>${label}</h4>${reasonRows(items.filter(x=>Number(x.points)>=0),true)}${reasonRows(items.filter(x=>Number(x.points)<0),false)}</section>`;
+  }).join('');
+}
 function listMarkup(items=[], empty=''){
   if(!items.length) return empty?`<p class="hint">${esc(empty)}</p>`:'';
   return `<ul>${items.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;
@@ -98,18 +109,26 @@ function listMarkup(items=[], empty=''){
 async function selectJob(id){
   state.selected=id; renderRows(); const data=await api(`/api/jobs/${id}`); const j=data.job; const draft=data.drafts[0];
   const details=detailsOf(j.score_details);
+  const groupedReasons=dimensionReasonMarkup(details);
   const positive=reasonRows(details.positive_reasons||[],true);
   const negative=reasonRows(details.negative_reasons||[],false);
   const recommendation=details.recommendation||((j.score||0)>=70?'Stærkt match':(j.score||0)>=45?'Muligt match':'Svagt match');
   const draftMeta=draft?`${providerNames[draft.provider]||draft.provider}${draft.model?` · ${draft.model}`:''}`:'';
   const facts=draft?.facts_used||[]; const warnings=draft?.warnings||[];
   $('#detail').innerHTML=`
-    <h2>${esc(j.title)}</h2><div class="meta">${esc(j.employer||'Virksomhed ikke fundet')} · ${esc(j.location||'Sted ikke angivet')} · score ${j.score??'–'}${Number(j.archived||0)?' · Arkiveret':''}</div>
+    <h2>${esc(j.title)}</h2><div class="meta">${esc(j.employer||'Virksomhed ikke fundet')} · ${esc(j.location||'Sted ikke angivet')}${Number(j.archived||0)?' · Arkiveret':''}</div>
     <div class="fit-box">
       <div class="fit-heading"><span class="recommendation ${recommendationClass(recommendation)}">${esc(recommendation)}</span><strong>${j.score??'–'} / 100</strong></div>
+      <div class="dimension-scores">
+        <div><span>Samlet</span><strong>${j.score??'–'}</strong></div>
+        <div><span>Kan jeg?</span><strong>${j.qualification_score??details.qualification_score??'–'}</strong></div>
+        <div><span>Retning</span><strong>${j.direction_score??details.direction_score??'–'}</strong></div>
+        <div><span>Nysgerrighed</span><strong>${j.curiosity_score??details.curiosity_score??'–'}</strong></div>
+      </div>
       <p>${esc(details.summary||'Scoren sammenligner annoncen med din profil og dine jobpræferencer.')}</p>
+      ${(details.matched_career_tracks||[]).length?`<p class="track-list"><strong>Karrierespor:</strong> ${(details.matched_career_tracks||[]).map(track=>esc(track.label||track.id)).join(' · ')}</p>`:''}
       <p class="found-note"><strong>Hvorfor vises jobbet?</strong> Det matchede filtrene på Jobnet/Jobindex. Status “Ny” betyder, at jobbet er fundet for første gang af en scanning. “Ny” eller “Fundet” er ikke i sig selv en anbefaling.</p>
-      ${(positive||negative)?`<div class="reason-list">${positive}${negative}</div>`:''}
+      ${(groupedReasons||positive||negative)?`<div class="reason-list">${groupedReasons||positive+negative}</div>`:''}
     </div>
     <label>Status<select id="detailStatus">${Object.entries(statusNames).map(([v,l])=>`<option value="${v}" ${j.status===v?'selected':''}>${l}</option>`).join('')}</select></label>
     <div class="detail-actions">
@@ -207,6 +226,8 @@ async function pollScanStatus(){
 }
 
 $('#searchFilter').oninput=renderRows; $('#statusFilter').onchange=renderRows;
+$('#scoreSort').onchange=e=>{state.scoreSort=e.target.value;renderRows()};
+['qualificationFilter','directionFilter','curiosityFilter'].forEach(id=>$(`#${id}`).oninput=renderRows);
 $('#activeViewBtn').onclick=()=>setJobView('active'); $('#archiveViewBtn').onclick=()=>setJobView('archive');
 $('#addBtn').onclick=()=>$('#addDialog').showModal();
 $('#addForm').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);const body=Object.fromEntries(f.entries());try{toast('Henter og analyserer annoncen…');const r=await api('/api/jobs/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});$('#addDialog').close();e.target.reset();toast(r.duplicate?`Dublet fundet: ${r.reason}`:`Job importeret med score ${r.score}`);await loadJobs();}catch(err){toast(err.message,true)}};
@@ -257,12 +278,24 @@ function parseSettingsJson(selector){
     for(const [group,key] of [['career','skills'],['preferences','preferred_terms'],['preferences','negative_terms']]){
       if(value[group]?.[key]!==undefined && (!Array.isArray(value[group][key]) || !value[group][key].every(x=>typeof x==='string'))) throw new Error(`${group}.${key} skal være en liste med tekst.`);
     }
-  }else{
+  }else if(selector==='#searchesJson'){
     if(!Array.isArray(value.searches) || !value.searches.every(isObject)) throw new Error('searches skal være en liste med søgeobjekter.');
     for(const search of value.searches){
       if(search.incremental!==undefined && !isObject(search.incremental)) throw new Error('incremental skal være et objekt.');
       if(search.incremental?.checkpoint!==undefined && !isObject(search.incremental.checkpoint)) throw new Error('checkpoint skal være et objekt.');
     }
+  }else{
+    if(!Number.isInteger(value.version)||value.version<1) throw new Error('version skal være et positivt heltal.');
+    if(!isObject(value.overall_score?.formula)) throw new Error('overall_score.formula skal være et objekt.');
+    for(const key of ['qualification','direction','curiosity']){
+      if(typeof value.overall_score.formula[key]!=='number') throw new Error(`overall_score.formula.${key} skal være et tal.`);
+    }
+    const weightSum=Object.values(value.overall_score.formula).reduce((sum,weight)=>sum+Number(weight||0),0);
+    if(Math.abs(weightSum-1)>0.001) throw new Error('Vægtene i overall_score.formula skal tilsammen være 1.');
+    for(const key of ['career_tracks','activity_signals','penalties','recommendations']){
+      if(!Array.isArray(value[key])) throw new Error(`${key} skal være en liste.`);
+    }
+    if(!Array.isArray(value.retention_rules?.store_if_any)) throw new Error('retention_rules.store_if_any skal være en liste.');
   }
   return value;
 }
@@ -303,6 +336,7 @@ function populateSearchSettings(searches){
 function populateSettings(){
   $('#profileJson').value=JSON.stringify(state.config.profile,null,2);
   $('#searchesJson').value=JSON.stringify(state.config.searches,null,2);
+  $('#scoringJson').value=JSON.stringify(state.config.scoring,null,2);
   populateProfileSettings(state.config.profile);
   populateSearchSettings(state.config.searches);
   settingsError();
@@ -358,6 +392,8 @@ $('#settingsForm').oninput=e=>{try{
     populateProfileSettings(parseSettingsJson('#profileJson'));
   }else if(input.id==='searchesJson'){
     populateSearchSettings(parseSettingsJson('#searchesJson'));
+  }else if(input.id==='scoringJson'){
+    parseSettingsJson('#scoringJson');
   }else if(input.closest('[data-panel="profile"], [data-panel="ai"]')){
     const profile=parseSettingsJson('#profileJson');
     profile.person={...(profile.person||{}),full_name:$('#profileName').value,email:$('#profileEmail').value,phone:$('#profilePhone').value,city:$('#profileCity').value};
@@ -376,8 +412,8 @@ $('#settingsForm').oninput=e=>{try{
 $('#settingsForm').onsubmit=async e=>{e.preventDefault();
   if(e.submitter?.value==='cancel'){$('#settingsDialog').close();return}
   try{
-  const profile=parseSettingsJson('#profileJson'), searches=parseSettingsJson('#searchesJson');
-  await api('/api/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({profile,searches})}); $('#settingsDialog').close(); toast('Indstillinger gemt og job genberegnet'); await loadJobs();
+  const profile=parseSettingsJson('#profileJson'), searches=parseSettingsJson('#searchesJson'), scoring=parseSettingsJson('#scoringJson');
+  await api('/api/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({profile,searches,scoring})}); $('#settingsDialog').close(); toast('Indstillinger gemt og job genberegnet'); await loadJobs();
 }catch(err){settingsError(`Ugyldige indstillinger: ${err.message}`)}};
 document.querySelectorAll('.tab').forEach(btn=>btn.onclick=()=>{document.querySelectorAll('.tab,.tab-panel').forEach(x=>x.classList.remove('active'));btn.classList.add('active');document.querySelector(`[data-panel="${btn.dataset.tab}"]`).classList.add('active')});
 loadJobs().catch(e=>toast(e.message,true));

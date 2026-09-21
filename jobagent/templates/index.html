@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Michael's Jobagent</title>
-  <link rel="stylesheet" href="/static/style.css?v=0.2.8">
+  <link rel="stylesheet" href="/static/style.css?v=0.3.0">
 </head>
 <body>
   <header>
@@ -40,6 +40,15 @@
           <option value="dismissed">Fravalgt</option>
           <option value="rejected">Afslag</option>
         </select>
+        <select id="scoreSort" aria-label="Sortér efter score">
+          <option value="score">Samlet score</option>
+          <option value="qualification_score">Kvalifikation</option>
+          <option value="direction_score">Retning</option>
+          <option value="curiosity_score">Nysgerrighed</option>
+        </select>
+        <input id="qualificationFilter" class="score-filter" type="number" min="0" max="100" placeholder="Min. kvalifikation">
+        <input id="directionFilter" class="score-filter" type="number" min="0" max="100" placeholder="Min. retning">
+        <input id="curiosityFilter" class="score-filter" type="number" min="0" max="100" placeholder="Min. nysgerrighed">
       </div>
       <div>
         <button class="secondary" id="historyBtn">Importér historik</button>
@@ -60,7 +69,7 @@
     <section class="layout">
       <div class="card list-card">
         <table>
-          <thead><tr><th>Score</th><th>Stilling</th><th>Virksomhed</th><th>Status</th><th>Kilde</th></tr></thead>
+          <thead><tr><th>Samlet</th><th>Stilling</th><th>Virksomhed</th><th>Status</th><th>Kilde</th></tr></thead>
           <tbody id="jobRows"></tbody>
         </table>
         <div id="empty" class="empty hidden">Ingen job matcher filteret.</div>
@@ -89,7 +98,7 @@
   <dialog id="settingsDialog" class="wide">
     <form method="dialog" id="settingsForm">
       <div class="dialog-head"><h2>Indstillinger</h2><button value="cancel" class="icon" formnovalidate>×</button></div>
-      <div class="tabs"><button type="button" class="tab active" data-tab="profile">Profil</button><button type="button" class="tab" data-tab="searches">Søgninger</button><button type="button" class="tab" data-tab="ai">AI og ansøgninger</button><button type="button" class="tab" data-tab="maintenance">Vedligeholdelse</button></div>
+      <div class="tabs"><button type="button" class="tab active" data-tab="profile">Profil</button><button type="button" class="tab" data-tab="searches">Søgninger</button><button type="button" class="tab" data-tab="ai">AI og ansøgninger</button><button type="button" class="tab" data-tab="scoring">Scoring</button><button type="button" class="tab" data-tab="maintenance">Vedligeholdelse</button></div>
       <div class="tab-panel active" data-panel="profile">
         <div class="two-col">
           <label>Navn<input id="profileName"></label>
@@ -151,6 +160,11 @@
         </section>
         <div id="aiConnectionStatus" class="connection-status hidden" aria-live="polite"></div>
       </div>
+      <div class="tab-panel" data-panel="scoring">
+        <h3>Scoringsmodel</h3>
+        <p class="hint">Modellen beregner Kvalifikation, Retning og Nysgerrighed hver for sig. Når du gemmer gyldig JSON her, genberegnes alle gemte job fra deres eksisterende annoncetekst uden at ændre status, arkiv eller udkast.</p>
+        <label>Scoring (JSON)<textarea id="scoringJson" rows="24" spellcheck="false"></textarea></label>
+      </div>
       <div class="tab-panel" data-panel="maintenance">
         <h3>Vedligeholdelse</h3>
         <p class="hint">Her bor de knapper, man helst ikke kommer til at trykke på ved et uheld.</p>
@@ -192,6 +206,6 @@
   </dialog>
 
   <div id="toast" class="toast hidden"></div>
-  <script src="/static/app.js?v=0.2.8-settings-json"></script>
+  <script src="/static/app.js?v=0.3.0"></script>
 </body>
 </html>

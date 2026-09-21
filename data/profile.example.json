@@ -32,7 +32,36 @@
     "experience_highlights": [],
     "education": [],
     "languages": [],
-    "drivers_license": ""
+    "drivers_license": "",
+    "evidence": {
+      "practical": [
+        {
+          "label": "Cykelværksted og reparation gennem Nytteindsats",
+          "terms": ["cykelværksted", "cykelreparation", "cykelmekanik", "værksted", "reparation"],
+          "professional_employment": false
+        },
+        {
+          "label": "Praktisk fejlfinding, reparation og gør-det-selv i hjemmet",
+          "terms": ["praktisk fejlfinding", "reparation", "gør-det-selv", "værktøj"],
+          "professional_employment": false
+        }
+      ],
+      "creative_people": [
+        {
+          "label": "D&D-gamemaster og historiefortælling",
+          "terms": ["d&d", "gamemaster", "game master", "historiefortælling", "storytelling", "rollespil"],
+          "professional_employment": false
+        },
+        {
+          "label": "Amatørteater",
+          "terms": ["amatørteater", "teater", "scene", "publikum"],
+          "professional_employment": false
+        }
+      ]
+    },
+    "direction": {
+      "interests": ["CTS", "BMS", "automation", "PLC"]
+    }
   },
   "preferences": {
     "locations": ["København", "Storkøbenhavn", "Frederiksberg", "Lyngby", "Glostrup", "Roskilde"],

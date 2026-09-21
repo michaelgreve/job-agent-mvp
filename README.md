@@ -1,8 +1,16 @@
-# Michael's Jobagent — 0.2.8
+# Michael's Jobagent — 0.3.0
 
 A local-first personal job-search assistant for Jobnet, Jobindex and the employer career sites they link to.
 
 It is intentionally an **assistant**, not an unsupervised mass-application bot. It collects, merges, scores, drafts and fills common fields, but it never clicks the final Send/Submit button.
+
+## Version 0.3.0: career-direction scoring
+
+Jobs now receive separate scores for Qualification, Direction and Curiosity. Overall is the configurable weighted result: 30% Qualification, 50% Direction and 20% Curiosity. A strong career-change opportunity can therefore survive scanning even when its Qualification score is modest, while familiar frontend work remains highly qualified without automatically ranking first.
+
+The SQLite migration adds the three dimension columns and a scoring-version marker without replacing job records. On startup, jobs created by an older scorer are recalculated from their saved advert text. Status, archive state, drafts, sources, discovery timestamps and scan checkpoints remain unchanged.
+
+The job detail view explains each dimension and its positive and negative signals. The list can sort and filter on every dimension. Application packages include all four scores, matched career tracks and reasons, while explicitly instructing the writer not to mention scores in the application.
 
 ## Version 0.2.8: neutral AI-agent handoff
 
@@ -20,12 +28,12 @@ The clipboard workflow is now labelled **Send til AI-agent** throughout the app.
 ## What it does
 
 - Scans configurable Jobnet and Jobindex search-result URLs.
-- Reads Jobnet's structured result batches and prefilters hundreds of job cards before storing plausible candidates.
+- Scores all available structured Jobnet cards and uses a broad configurable prefilter before opening Jobindex detail pages.
 - Traverses Jobindex's numbered result pages and recognises its current advert and tracking-link formats.
 - Reads Jobindex adverts embedded in frames and falls back safely to the result card when a detail page will not render.
 - Uses source-neutral scan checkpoints so completed Jobnet searches only revisit adverts published since the previous successful run.
 - Imports individual adverts from a URL or pasted text.
-- Scores jobs against Michael's skills, preferences and adjacent technical roles.
+- Separately scores Qualification, Direction and Curiosity using the versioned configuration in `jobagent/scoring.v2.json`.
 - Penalises red flags such as SAFe, PI planning, daily Scrum and burndown charts.
 - Detects exact and fuzzy duplicates across sites.
 - Keeps a private SQLite application ledger.

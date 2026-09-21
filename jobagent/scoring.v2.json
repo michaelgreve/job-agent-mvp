@@ -1,0 +1,1088 @@
+{
+  "version": 2,
+  "name": "Michael career-direction scoring v2",
+
+  "score_range": {
+    "min": 0,
+    "max": 100
+  },
+
+  "dimension_baselines": {
+    "qualification": 5,
+    "direction": 20,
+    "curiosity": 20
+  },
+
+  "dimensions": {
+    "qualification": {
+      "label": "Kan jeg jobbet?",
+      "description": "Hvor godt Michaels dokumenterede erfaring og kompetencer matcher jobbet.",
+      "weight": 0.30
+    },
+    "direction": {
+      "label": "Er det den rigtige retning?",
+      "description": "Hvor godt jobbet matcher ønsket om praktisk, teknisk arbejde med konkrete resultater.",
+      "weight": 0.50
+    },
+    "curiosity": {
+      "label": "Vækker det min nysgerrighed?",
+      "description": "Hvor sandsynligt det er, at jobbet er interessant, anderledes eller værd at undersøge nærmere.",
+      "weight": 0.20
+    }
+  },
+
+  "overall_score": {
+    "method": "weighted_sum",
+    "round": true,
+    "clamp": true,
+    "formula": {
+      "qualification": 0.30,
+      "direction": 0.50,
+      "curiosity": 0.20
+    }
+  },
+
+  "matching": {
+    "case_insensitive": true,
+    "normalize_danish_characters": false,
+    "use_word_variants": true,
+    "match_each_signal_once": true,
+    "prefer_longest_phrase": true,
+    "title_multiplier": 1.25
+  },
+
+  "profile_overlap": {
+    "professional_skill": {
+      "qualification_per_distinct_match": 5,
+      "qualification_cap": 30
+    },
+    "currently_learning": {
+      "qualification_per_distinct_match": 0,
+      "direction_per_distinct_match": 2,
+      "curiosity_per_distinct_match": 5,
+      "direction_cap": 8,
+      "curiosity_cap": 15,
+      "note": "Currently learning must never count as professional experience or qualification."
+    },
+    "career_interest": {
+      "qualification_per_distinct_match": 0,
+      "direction_per_distinct_match": 3,
+      "curiosity_per_distinct_match": 2,
+      "direction_cap": 9,
+      "curiosity_cap": 6
+    }
+  },
+
+  "career_tracks": [
+    {
+      "id": "automation_bms_cts",
+      "label": "Automation / CTS / BMS",
+      "priority": "primary",
+      "title_terms": [
+        "automatiktekniker",
+        "automation technician",
+        "automation engineer",
+        "automation specialist",
+        "cts tekniker",
+        "cts-tekniker",
+        "cts specialist",
+        "bms tekniker",
+        "bms-tekniker",
+        "bms specialist",
+        "building automation",
+        "bygningsautomatik",
+        "servicetekniker automation"
+      ],
+      "keyword_terms": [
+        "cts",
+        "bms",
+        "plc",
+        "automation",
+        "automatisering",
+        "styring",
+        "regulering",
+        "sensor",
+        "sensorer",
+        "aktuator",
+        "aktuatorer",
+        "scada",
+        "hmi",
+        "idriftsættelse",
+        "commissioning",
+        "tekniske installationer"
+      ],
+      "title_points": {
+        "qualification": 10,
+        "direction": 32,
+        "curiosity": 20
+      },
+      "keyword_points_per_match": {
+        "qualification": 1,
+        "direction": 3,
+        "curiosity": 2
+      },
+      "keyword_caps": {
+        "qualification": 10,
+        "direction": 24,
+        "curiosity": 16
+      }
+    },
+
+    {
+      "id": "technical_operations_support",
+      "label": "Teknisk drift / support / field service",
+      "priority": "primary",
+      "title_terms": [
+        "it-supporter",
+        "it supporter",
+        "supporttekniker",
+        "it-tekniker",
+        "it tekniker",
+        "driftstekniker",
+        "applikationsspecialist",
+        "it-konsulent",
+        "teknisk konsulent",
+        "field service technician",
+        "field technician",
+        "service technician",
+        "servicetekniker"
+      ],
+      "keyword_terms": [
+        "fejlfinding",
+        "troubleshooting",
+        "onsite",
+        "on-site",
+        "installation",
+        "hardware",
+        "support",
+        "drift",
+        "service",
+        "brugersupport",
+        "teknisk support",
+        "konfiguration",
+        "udstyr",
+        "deployment",
+        "patching",
+        "patches",
+        "windows",
+        "linux"
+      ],
+      "title_points": {
+        "qualification": 15,
+        "direction": 25,
+        "curiosity": 12
+      },
+      "keyword_points_per_match": {
+        "qualification": 2,
+        "direction": 2,
+        "curiosity": 1
+      },
+      "keyword_caps": {
+        "qualification": 16,
+        "direction": 20,
+        "curiosity": 10
+      }
+    },
+
+    {
+      "id": "workshop_mechanical",
+      "label": "Værksted / mekanik / reparation",
+      "priority": "primary",
+      "title_terms": [
+        "cykelmekaniker",
+        "cykelmontør",
+        "værkstedsmedarbejder",
+        "værkstedstekniker",
+        "værkstedsassistent",
+        "montør",
+        "reparatør",
+        "teknisk medarbejder"
+      ],
+      "keyword_terms": [
+        "værksted",
+        "reparation",
+        "reparere",
+        "mekanik",
+        "mekanisk",
+        "montering",
+        "montage",
+        "adskille",
+        "samle",
+        "justering",
+        "vedligehold",
+        "vedligeholdelse",
+        "værktøj",
+        "praktisk arbejde"
+      ],
+      "title_points": {
+        "qualification": 5,
+        "direction": 32,
+        "curiosity": 16
+      },
+      "keyword_points_per_match": {
+        "qualification": 1,
+        "direction": 3,
+        "curiosity": 2
+      },
+      "keyword_caps": {
+        "qualification": 8,
+        "direction": 25,
+        "curiosity": 16
+      }
+    },
+
+    {
+      "id": "facilities_property",
+      "label": "Ejendomsdrift / teknisk service",
+      "priority": "secondary",
+      "title_terms": [
+        "ejendomsfunktionær",
+        "ejendomsservicetekniker",
+        "ejendomsservice",
+        "vicevært",
+        "driftsmedarbejder",
+        "teknisk servicemedarbejder",
+        "facility technician",
+        "facility coordinator"
+      ],
+      "keyword_terms": [
+        "ejendomsdrift",
+        "bygninger",
+        "bygningsdrift",
+        "vedligeholdelse",
+        "installationer",
+        "reparation",
+        "tilsyn",
+        "tekniske anlæg",
+        "serviceopgaver",
+        "facility"
+      ],
+      "title_points": {
+        "qualification": 5,
+        "direction": 26,
+        "curiosity": 10
+      },
+      "keyword_points_per_match": {
+        "qualification": 1,
+        "direction": 3,
+        "curiosity": 1
+      },
+      "keyword_caps": {
+        "qualification": 8,
+        "direction": 22,
+        "curiosity": 10
+      }
+    },
+
+    {
+      "id": "event_experience_stage",
+      "label": "Events / oplevelser / scene",
+      "priority": "secondary",
+      "title_terms": [
+        "gamemaster",
+        "game master",
+        "eventafvikler",
+        "eventmedarbejder",
+        "event host",
+        "oplevelsesvært",
+        "museumsvært",
+        "vært",
+        "regissør",
+        "stagehand",
+        "scenetekniker",
+        "teatermedarbejder"
+      ],
+      "keyword_terms": [
+        "værtskab",
+        "formidling",
+        "oplevelser",
+        "publikum",
+        "gæster",
+        "afvikling",
+        "scene",
+        "teater",
+        "historiefortælling",
+        "storytelling",
+        "improvisation",
+        "mysterier",
+        "escape room",
+        "events"
+      ],
+      "title_points": {
+        "qualification": 10,
+        "direction": 22,
+        "curiosity": 35
+      },
+      "keyword_points_per_match": {
+        "qualification": 1,
+        "direction": 2,
+        "curiosity": 3
+      },
+      "keyword_caps": {
+        "qualification": 8,
+        "direction": 18,
+        "curiosity": 25
+      }
+    },
+
+    {
+      "id": "frontend_software",
+      "label": "Frontend / software",
+      "priority": "established",
+      "title_terms": [
+        "frontend developer",
+        "frontend engineer",
+        "frontendudvikler",
+        "frontend udvikler",
+        "angular developer",
+        "angular udvikler",
+        "software developer",
+        "software engineer",
+        "softwareudvikler",
+        "web developer",
+        "webudvikler",
+        "full stack developer",
+        "full-stack developer"
+      ],
+      "keyword_terms": [
+        "angular",
+        "typescript",
+        "javascript",
+        "rxjs",
+        "ngrx",
+        "html",
+        "scss",
+        "frontend",
+        "web application",
+        "webapplikation",
+        "user interface",
+        "brugergrænseflade"
+      ],
+      "title_points": {
+        "qualification": 30,
+        "direction": 7,
+        "curiosity": 5
+      },
+      "keyword_points_per_match": {
+        "qualification": 3,
+        "direction": 0,
+        "curiosity": 0
+      },
+      "keyword_caps": {
+        "qualification": 30,
+        "direction": 0,
+        "curiosity": 0
+      }
+    },
+
+    {
+      "id": "general_software_adjacent",
+      "label": "Teknisk software / systemer",
+      "priority": "secondary",
+      "title_terms": [
+        "system developer",
+        "systemudvikler",
+        "application specialist",
+        "applikationsspecialist",
+        "integration developer",
+        "integrationsudvikler",
+        "technical specialist",
+        "teknisk specialist"
+      ],
+      "keyword_terms": [
+        "systemudvikling",
+        "integration",
+        "api",
+        "scripting",
+        "powershell",
+        "python",
+        "sql",
+        "data flow",
+        "data flows",
+        "automation"
+      ],
+      "title_points": {
+        "qualification": 18,
+        "direction": 12,
+        "curiosity": 10
+      },
+      "keyword_points_per_match": {
+        "qualification": 2,
+        "direction": 1,
+        "curiosity": 1
+      },
+      "keyword_caps": {
+        "qualification": 18,
+        "direction": 10,
+        "curiosity": 10
+      }
+    }
+  ],
+
+  "activity_signals": [
+    {
+      "id": "hands_on",
+      "label": "Hands-on praktisk arbejde",
+      "terms": [
+        "hands-on",
+        "praktisk arbejde",
+        "arbejde med hænderne",
+        "værktøj",
+        "montering",
+        "installation",
+        "fysisk udstyr"
+      ],
+      "points": {
+        "qualification": 0,
+        "direction": 18,
+        "curiosity": 8
+      }
+    },
+    {
+      "id": "troubleshooting",
+      "label": "Fejlfinding",
+      "terms": [
+        "fejlfinding",
+        "troubleshooting",
+        "debugging",
+        "diagnosticering",
+        "diagnostics",
+        "finde fejl",
+        "fault finding"
+      ],
+      "points": {
+        "qualification": 8,
+        "direction": 12,
+        "curiosity": 5
+      }
+    },
+    {
+      "id": "repair_maintenance",
+      "label": "Reparation og vedligehold",
+      "terms": [
+        "reparation",
+        "repair",
+        "maintenance",
+        "vedligehold",
+        "vedligeholdelse",
+        "service og vedligehold"
+      ],
+      "points": {
+        "qualification": 0,
+        "direction": 14,
+        "curiosity": 6
+      }
+    },
+    {
+      "id": "installation_commissioning",
+      "label": "Installation og idriftsættelse",
+      "terms": [
+        "installation",
+        "installere",
+        "idriftsættelse",
+        "commissioning",
+        "opsætning",
+        "configuration on-site"
+      ],
+      "points": {
+        "qualification": 0,
+        "direction": 14,
+        "curiosity": 8
+      }
+    },
+    {
+      "id": "visible_result",
+      "label": "Synligt og konkret resultat",
+      "terms": [
+        "fra idé til drift",
+        "fra start til slut",
+        "fra problem til løsning",
+        "build and maintain",
+        "implement and maintain",
+        "konkret resultat",
+        "fysiske produkter",
+        "physical product"
+      ],
+      "points": {
+        "qualification": 0,
+        "direction": 10,
+        "curiosity": 5
+      }
+    },
+    {
+      "id": "real_world_system",
+      "label": "Teknik møder den fysiske verden",
+      "terms": [
+        "machines",
+        "machinery",
+        "machine",
+        "maskiner",
+        "udstyr",
+        "equipment",
+        "hardware",
+        "iot",
+        "sensor",
+        "building",
+        "bygning",
+        "shop floor",
+        "produktion",
+        "manufacturing",
+        "vehicle",
+        "køretøj"
+      ],
+      "points": {
+        "qualification": 0,
+        "direction": 15,
+        "curiosity": 12
+      }
+    },
+    {
+      "id": "direct_people_contact",
+      "label": "Kontakt med brugere eller kunder",
+      "terms": [
+        "customer contact",
+        "kundekontakt",
+        "user support",
+        "brugersupport",
+        "gæster",
+        "guests",
+        "end users",
+        "slutbrugere",
+        "stakeholders",
+        "formidling"
+      ],
+      "points": {
+        "qualification": 2,
+        "direction": 7,
+        "curiosity": 5
+      }
+    },
+    {
+      "id": "small_team",
+      "label": "Lille eller tæt team",
+      "terms": [
+        "small team",
+        "lille team",
+        "close-knit",
+        "tæt team",
+        "short decision paths",
+        "korte beslutningsveje"
+      ],
+      "points": {
+        "qualification": 0,
+        "direction": 7,
+        "curiosity": 4
+      }
+    },
+    {
+      "id": "autonomy",
+      "label": "Selvstændighed og ejerskab",
+      "terms": [
+        "ownership",
+        "ejerskab",
+        "autonomy",
+        "selvstændigt",
+        "selvstændighed",
+        "freedom to",
+        "frihed til",
+        "own your"
+      ],
+      "points": {
+        "qualification": 2,
+        "direction": 8,
+        "curiosity": 4
+      }
+    },
+    {
+      "id": "varied_tasks",
+      "label": "Varierede opgaver",
+      "terms": [
+        "varied tasks",
+        "varierede opgaver",
+        "two days are rarely the same",
+        "to dage er sjældent ens",
+        "alsidige opgaver",
+        "wide range of tasks"
+      ],
+      "points": {
+        "qualification": 0,
+        "direction": 8,
+        "curiosity": 6
+      }
+    },
+    {
+      "id": "learning_on_job",
+      "label": "Læring i jobbet",
+      "terms": [
+        "training provided",
+        "oplæring",
+        "onboarding program",
+        "on-the-job training",
+        "learn on the job",
+        "du vil lære",
+        "we will bring you up to speed",
+        "efteruddannelse"
+      ],
+      "points": {
+        "qualification": 0,
+        "direction": 12,
+        "curiosity": 10
+      }
+    },
+    {
+      "id": "meaningful_impact",
+      "label": "Tydelig nytte eller betydning",
+      "terms": [
+        "makes a difference",
+        "gør en forskel",
+        "public service",
+        "samfund",
+        "patient",
+        "healthcare",
+        "critical infrastructure",
+        "kritisk infrastruktur",
+        "members",
+        "medlemmer"
+      ],
+      "points": {
+        "qualification": 0,
+        "direction": 3,
+        "curiosity": 7
+      }
+    }
+  ],
+
+  "environment_signals": [
+    {
+      "id": "informal",
+      "label": "Uformelt miljø",
+      "terms": [
+        "informal",
+        "uformel",
+        "plads til humor",
+        "good social environment",
+        "socialt miljø"
+      ],
+      "points": {
+        "direction": 5,
+        "curiosity": 3
+      }
+    },
+    {
+      "id": "practical_team",
+      "label": "Praktisk og løsningsorienteret team",
+      "terms": [
+        "hands-on team",
+        "pragmatic",
+        "pragmatisk",
+        "solve problems",
+        "løse problemer",
+        "close to the business",
+        "tæt på forretningen"
+      ],
+      "points": {
+        "direction": 7,
+        "curiosity": 4
+      }
+    }
+  ],
+
+  "interaction_rules": [
+    {
+      "id": "software_plus_physical_world",
+      "label": "Software + fysisk verden",
+      "requires_any_from_groups": [
+        "frontend_software",
+        "general_software_adjacent"
+      ],
+      "requires_signal": "real_world_system",
+      "points": {
+        "qualification": 3,
+        "direction": 18,
+        "curiosity": 12
+      }
+    },
+    {
+      "id": "software_plus_hands_on",
+      "label": "Software + hands-on",
+      "requires_any_from_groups": [
+        "frontend_software",
+        "general_software_adjacent"
+      ],
+      "requires_signal": "hands_on",
+      "points": {
+        "qualification": 2,
+        "direction": 15,
+        "curiosity": 10
+      }
+    },
+    {
+      "id": "technical_plus_people",
+      "label": "Teknik + mennesker",
+      "requires_any_from_groups": [
+        "automation_bms_cts",
+        "technical_operations_support",
+        "frontend_software",
+        "general_software_adjacent"
+      ],
+      "requires_signal": "direct_people_contact",
+      "points": {
+        "qualification": 2,
+        "direction": 7,
+        "curiosity": 6
+      }
+    },
+    {
+      "id": "new_direction_with_training",
+      "label": "Ny teknisk retning med oplæring",
+      "requires_any_from_groups": [
+        "automation_bms_cts",
+        "technical_operations_support",
+        "workshop_mechanical",
+        "facilities_property"
+      ],
+      "requires_signal": "learning_on_job",
+      "points": {
+        "qualification": 0,
+        "direction": 15,
+        "curiosity": 12
+      }
+    },
+    {
+      "id": "small_hands_on_team",
+      "label": "Lille hands-on team",
+      "requires_signals": [
+        "small_team",
+        "hands_on"
+      ],
+      "points": {
+        "qualification": 0,
+        "direction": 10,
+        "curiosity": 7
+      }
+    }
+  ],
+
+  "penalties": [
+    {
+      "id": "safe_pi_planning",
+      "label": "SAFe / PI planning",
+      "terms": [
+        "safe",
+        "scaled agile framework",
+        "pi planning",
+        "planning interval",
+        "planning intervals"
+      ],
+      "points": {
+        "qualification": 0,
+        "direction": -22,
+        "curiosity": -12
+      }
+    },
+    {
+      "id": "burn_metrics",
+      "label": "Burndown / burn-up metrics",
+      "terms": [
+        "burndown",
+        "burn-down",
+        "burnup",
+        "burn-up",
+        "burn chart"
+      ],
+      "points": {
+        "qualification": 0,
+        "direction": -20,
+        "curiosity": -10
+      }
+    },
+    {
+      "id": "heavy_scrum",
+      "label": "Tung Scrum-proces",
+      "terms": [
+        "daily scrum",
+        "daily standup",
+        "daily stand-up",
+        "scrum master",
+        "every sprint",
+        "two-week sprint",
+        "2-week sprint"
+      ],
+      "points": {
+        "qualification": 0,
+        "direction": -8,
+        "curiosity": -5
+      }
+    },
+    {
+      "id": "people_management",
+      "label": "Primært personaleledelse",
+      "terms": [
+        "people management responsibility",
+        "personaleansvar",
+        "line manager",
+        "personaleleder"
+      ],
+      "points": {
+        "qualification": -5,
+        "direction": -15,
+        "curiosity": -8
+      }
+    },
+    {
+      "id": "project_management_primary",
+      "label": "Primært projektledelse og koordinering",
+      "terms": [
+        "primary responsibility for project management",
+        "primært projektledelse",
+        "project manager",
+        "projektleder"
+      ],
+      "points": {
+        "qualification": -5,
+        "direction": -15,
+        "curiosity": -8
+      }
+    },
+    {
+      "id": "sales_primary",
+      "label": "Primært salg",
+      "terms": [
+        "sales targets",
+        "salgsbudget",
+        "cold calling",
+        "opsøgende salg",
+        "account executive"
+      ],
+      "points": {
+        "qualification": -10,
+        "direction": -25,
+        "curiosity": -15
+      }
+    },
+    {
+      "id": "pure_software_without_other_signals",
+      "label": "Ren software uden praktiske eller konkrete elementer",
+      "conditional": {
+        "matched_group": "frontend_software",
+        "none_of_signals": [
+          "hands_on",
+          "real_world_system",
+          "direct_people_contact",
+          "visible_result"
+        ]
+      },
+      "points": {
+        "qualification": 0,
+        "direction": -10,
+        "curiosity": -5
+      }
+    },
+    {
+      "id": "mandatory_degree_not_held",
+      "label": "Obligatorisk uddannelseskrav",
+      "requirement_terms": [
+        "required degree",
+        "must have a degree",
+        "krav om uddannelse",
+        "skal være uddannet",
+        "minimum bachelor",
+        "minimum master's"
+      ],
+      "ignore_terms": [
+        "or equivalent experience",
+        "eller tilsvarende erfaring",
+        "or similar experience"
+      ],
+      "points": {
+        "qualification": -20,
+        "direction": 0,
+        "curiosity": 0
+      }
+    },
+    {
+      "id": "mandatory_trade_certificate_not_held",
+      "label": "Obligatorisk fagbrev/certifikat",
+      "requirement_terms": [
+        "faglært",
+        "svendebrev",
+        "required certification",
+        "autorisation påkrævet",
+        "uddannet elektriker",
+        "uddannet automatiktekniker"
+      ],
+      "ignore_terms": [
+        "trainee",
+        "elev",
+        "lærling",
+        "oplæring",
+        "ikke et krav",
+        "not required"
+      ],
+      "points": {
+        "qualification": -25,
+        "direction": 0,
+        "curiosity": 0
+      }
+    }
+  ],
+
+  "unrelated_professions": {
+    "enabled": true,
+    "terms": [
+      "sygeplejerske",
+      "social- og sundhedsassistent",
+      "social- og sundhedshjælper",
+      "ergoterapeut",
+      "fysioterapeut",
+      "læge",
+      "tandlæge",
+      "tandplejer",
+      "pædagog",
+      "pædagogmedhjælper",
+      "socialrådgiver",
+      "negletekniker",
+      "nail technician",
+      "frisør",
+      "kok",
+      "køkkenmedhjælper",
+      "rengøringsassistent",
+      "nattevagt",
+      "security guard"
+    ],
+    "points": {
+      "qualification": -60,
+      "direction": -60,
+      "curiosity": -40
+    },
+    "hide_when_no_target_track_matches": true
+  },
+
+  "curiosity_signals": [
+    {
+      "id": "storytelling",
+      "label": "Historiefortælling og oplevelser",
+      "terms": [
+        "storytelling",
+        "historiefortælling",
+        "gamemaster",
+        "game master",
+        "mystery",
+        "mysterium",
+        "escape room",
+        "roleplay",
+        "rollespil",
+        "teater",
+        "theatre"
+      ],
+      "points": 25
+    },
+    {
+      "id": "unusual_real_world_tech",
+      "label": "Usædvanlig teknologi med konkret anvendelse",
+      "terms": [
+        "3d printer",
+        "3d printing",
+        "cnc",
+        "robot",
+        "robotics",
+        "iot",
+        "machine control",
+        "building automation",
+        "medical device",
+        "medicinsk udstyr",
+        "smart building"
+      ],
+      "points": 15
+    },
+    {
+      "id": "learning_new_domain",
+      "label": "Mulighed for at lære et nyt teknisk domæne",
+      "terms": [
+        "we will train",
+        "training provided",
+        "oplæring",
+        "learn",
+        "lære",
+        "develop new skills",
+        "udvikle nye kompetencer"
+      ],
+      "points": 10
+    }
+  ],
+
+  "score_caps": {
+    "qualification": 100,
+    "direction": 100,
+    "curiosity": 100
+  },
+
+  "retention_rules": {
+    "store_if_any": [
+      {
+        "metric": "overall",
+        "gte": 30
+      },
+      {
+        "metric": "qualification",
+        "gte": 55
+      },
+      {
+        "metric": "direction",
+        "gte": 55
+      },
+      {
+        "metric": "curiosity",
+        "gte": 65
+      }
+    ],
+    "important": "A low qualification score must not discard a strong career-direction job."
+  },
+
+  "recommendations": [
+    {
+      "min": 75,
+      "label": "Høj prioritet"
+    },
+    {
+      "min": 60,
+      "label": "Stærk kandidat"
+    },
+    {
+      "min": 45,
+      "label": "Interessant"
+    },
+    {
+      "min": 30,
+      "label": "Muligt match"
+    },
+    {
+      "min": 0,
+      "label": "Lav prioritet"
+    }
+  ],
+
+  "manual_interest": {
+    "enabled": false,
+    "description": "Optional future feature allowing Michael to explicitly teach the agent what catches his attention.",
+    "values": {
+      "not_for_me": -30,
+      "neutral": 0,
+      "interesting": 10,
+      "very_interesting": 20
+    },
+    "apply_to": "curiosity"
+  },
+
+  "application_package": {
+    "include_scores": [
+      "overall",
+      "qualification",
+      "direction",
+      "curiosity"
+    ],
+    "include_positive_reasons": true,
+    "include_negative_reasons": true,
+    "include_matched_career_tracks": true
+  }
+}

@@ -10,8 +10,10 @@ DATA_DIR = ROOT / "data"
 DB_PATH = DATA_DIR / "jobagent.db"
 PROFILE_PATH = DATA_DIR / "profile.json"
 SEARCHES_PATH = DATA_DIR / "searches.json"
+SCORING_PATH = DATA_DIR / "scoring.json"
 PROFILE_EXAMPLE_PATH = DATA_DIR / "profile.example.json"
 SEARCHES_EXAMPLE_PATH = DATA_DIR / "searches.example.json"
+SCORING_DEFAULT_PATH = ROOT / "jobagent" / "scoring.v2.json"
 GENERATED_DIR = DATA_DIR / "generated"
 CV_DIR = DATA_DIR / "cv"
 BROWSER_PROFILE_DIR = DATA_DIR / "browser-profile"
@@ -41,6 +43,35 @@ DEFAULT_PROFILE: dict[str, Any] = {
         "education": [],
         "languages": [],
         "drivers_license": "",
+        "evidence": {
+            "practical": [
+                {
+                    "label": "Cykelværksted og reparation gennem Nytteindsats",
+                    "terms": ["cykelværksted", "cykelreparation", "cykelmekanik", "værksted", "reparation"],
+                    "professional_employment": False
+                },
+                {
+                    "label": "Praktisk fejlfinding, reparation og gør-det-selv i hjemmet",
+                    "terms": ["praktisk fejlfinding", "reparation", "gør-det-selv", "værktøj"],
+                    "professional_employment": False
+                }
+            ],
+            "creative_people": [
+                {
+                    "label": "D&D-gamemaster og historiefortælling",
+                    "terms": ["d&d", "gamemaster", "game master", "historiefortælling", "storytelling", "rollespil"],
+                    "professional_employment": False
+                },
+                {
+                    "label": "Amatørteater",
+                    "terms": ["amatørteater", "teater", "scene", "publikum"],
+                    "professional_employment": False
+                }
+            ]
+        },
+        "direction": {
+            "interests": ["CTS", "BMS", "automation", "PLC"]
+        },
     },
     "preferences": {
         "locations": ["København", "Storkøbenhavn", "Frederiksberg", "Lyngby", "Glostrup", "Roskilde"],
@@ -178,6 +209,8 @@ def ensure_data_files() -> None:
         SEARCHES_PATH.write_text(
             json.dumps(initial_searches, ensure_ascii=False, indent=2), encoding="utf-8"
         )
+    if not SCORING_PATH.exists():
+        SCORING_PATH.write_text(SCORING_DEFAULT_PATH.read_text(encoding="utf-8"), encoding="utf-8")
 
 
 def load_json(path: Path) -> dict[str, Any]:

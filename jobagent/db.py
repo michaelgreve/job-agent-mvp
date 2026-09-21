@@ -29,6 +29,10 @@ CREATE TABLE IF NOT EXISTS jobs (
     content_hash TEXT,
     fingerprint TEXT,
     score INTEGER,
+    qualification_score INTEGER,
+    direction_score INTEGER,
+    curiosity_score INTEGER,
+    scoring_version INTEGER NOT NULL DEFAULT 0,
     score_details TEXT,
     status TEXT NOT NULL DEFAULT 'discovered',
     archived INTEGER NOT NULL DEFAULT 0,
@@ -122,10 +126,22 @@ def _migration_list_indexes(conn: sqlite3.Connection) -> None:
     conn.execute("CREATE INDEX IF NOT EXISTS idx_job_sources_job_id ON job_sources(job_id)")
 
 
+def _migration_multidimensional_scoring(conn: sqlite3.Connection) -> None:
+    _ensure_column(conn, "jobs", "qualification_score", "INTEGER")
+    _ensure_column(conn, "jobs", "direction_score", "INTEGER")
+    _ensure_column(conn, "jobs", "curiosity_score", "INTEGER")
+    _ensure_column(conn, "jobs", "scoring_version", "INTEGER NOT NULL DEFAULT 0")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_jobs_dimension_scores "
+        "ON jobs(qualification_score, direction_score, curiosity_score)"
+    )
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     (1, "draft_metadata", _migration_draft_metadata),
     (2, "archive_flag", _migration_archive),
     (3, "common_query_indexes", _migration_list_indexes),
+    (4, "multidimensional_scoring", _migration_multidimensional_scoring),
 )
 
 

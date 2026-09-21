@@ -20,7 +20,7 @@ from .ai import (
     AIError, GeneratedApplication, generate_application, test_provider_connection,
 )
 from .config import (
-    CV_DIR, GENERATED_DIR, PROFILE_PATH, ROOT, SEARCHES_PATH, ensure_data_files,
+    CV_DIR, GENERATED_DIR, PROFILE_PATH, ROOT, SCORING_PATH, SEARCHES_PATH, ensure_data_files,
     load_json, save_json,
 )
 from .db import connection, init_db, log_event, reset_application_data, rows_to_dicts, utcnow
@@ -30,7 +30,10 @@ from .extractors import (
     ExtractedJob, SearchResultCard, discover_search_results, extract_candidate_job,
     job_validation_error,
 )
-from .scoring import score_job
+from .scoring import (
+    is_prefilter_candidate, score_job, scoring_config, should_retain,
+    validate_scoring_config,
+)
 
 VERSION = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
 
@@ -64,6 +67,7 @@ class ArchiveRequest(BaseModel):
 class ConfigRequest(BaseModel):
     profile: dict[str, Any]
     searches: dict[str, Any]
+    scoring: dict[str, Any] | None = None
 
 class ResetDatabaseRequest(BaseModel):
     confirmation: str = Field(min_length=1, max_length=40)
@@ -145,32 +149,40 @@ def _clear_scan_checkpoints() -> int:
     return checkpoints_cleared
 
 
-def _rescore_all_jobs() -> None:
+def _score_values(result: Any) -> tuple[int, int, int, int, str]:
+    return (
+        result.score,
+        result.dimension("qualification"),
+        result.dimension("direction"),
+        result.dimension("curiosity"),
+        json.dumps(result.details, ensure_ascii=False),
+    )
+
+
+def _rescore_all_jobs(*, force: bool = True) -> int:
     profile = load_json(PROFILE_PATH)
+    current_version = int(scoring_config().get("version", 2))
     with connection() as conn:
-        rows = rows_to_dicts(conn.execute("SELECT * FROM jobs WHERE duplicate_of IS NULL").fetchall())
+        query = "SELECT * FROM jobs"
+        args: tuple[Any, ...] = ()
+        if not force:
+            query += " WHERE COALESCE(scoring_version,0) < ?"
+            args = (current_version,)
+        rows = rows_to_dicts(conn.execute(query, args).fetchall())
         for job in rows:
             result = score_job(job, profile)
+            overall, qualification, direction, curiosity, details = _score_values(result)
             conn.execute(
-                "UPDATE jobs SET score=?,score_details=?,updated_at=? WHERE id=?",
-                (result.score, json.dumps(result.details, ensure_ascii=False), utcnow(), job["id"]),
+                """UPDATE jobs SET score=?,qualification_score=?,direction_score=?,
+                   curiosity_score=?,scoring_version=?,score_details=? WHERE id=?""",
+                (overall, qualification, direction, curiosity, current_version, details, job["id"]),
             )
+    return len(rows)
 
 def startup() -> None:
     ensure_data_files()
     init_db()
-    # Remove only clearly broken scanner imports from 0.1.1. Real applications,
-    # manual entries and anything with a draft/status change are untouched.
-    with connection() as conn:
-        conn.execute("""
-            DELETE FROM jobs
-            WHERE status IN ('new','discovered')
-              AND lower(trim(title)) IN ('ukendt stilling', 'find job', 'søg', 'jobnet', 'jobindex')
-              AND lower(trim(COALESCE(employer,''))) IN ('', 'ukendt')
-              AND length(trim(COALESCE(description,''))) < 80
-              AND NOT EXISTS (SELECT 1 FROM drafts WHERE drafts.job_id=jobs.id)
-        """)
-    _rescore_all_jobs()
+    _rescore_all_jobs(force=False)
 
 @app.get("/", response_class=HTMLResponse)
 def index() -> HTMLResponse:
@@ -182,12 +194,25 @@ def health() -> dict:
 
 @app.get("/api/config")
 def get_config() -> dict:
-    return {"profile": load_json(PROFILE_PATH), "searches": load_json(SEARCHES_PATH), "cv_files": sorted([p.name for p in CV_DIR.iterdir() if p.is_file() and p.name != "README.md"])}
+    return {
+        "profile": load_json(PROFILE_PATH),
+        "searches": load_json(SEARCHES_PATH),
+        "scoring": load_json(SCORING_PATH),
+        "cv_files": sorted([p.name for p in CV_DIR.iterdir() if p.is_file() and p.name != "README.md"]),
+    }
 
 @app.put("/api/config")
 def put_config(payload: ConfigRequest) -> dict:
+    if payload.scoring is not None:
+        try:
+            validate_scoring_config(payload.scoring)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
     save_json(PROFILE_PATH, payload.profile)
     save_json(SEARCHES_PATH, payload.searches)
+    if payload.scoring is not None:
+        save_json(SCORING_PATH, payload.scoring)
+        scoring_config.cache_clear()
     _rescore_all_jobs()
     return {"ok": True}
 
@@ -286,16 +311,18 @@ def _enrich_duplicate(conn: Any, job_id: int, incoming: dict[str, Any], profile:
         merged.get("title", ""), merged.get("employer"), merged.get("location"), merged.get("source_job_id")
     )
     result = score_job(merged, profile)
+    overall, qualification, direction, curiosity, details = _score_values(result)
     conn.execute(
         """UPDATE jobs SET employer=?,location=?,application_url=?,source_job_id=?,description=?,
            date_posted=?,deadline=?,employment_type=?,canonical_url=?,content_hash=?,fingerprint=?,
-           score=?,score_details=?,updated_at=? WHERE id=?""",
+           score=?,qualification_score=?,direction_score=?,curiosity_score=?,scoring_version=?,
+           score_details=?,updated_at=? WHERE id=?""",
         (
             merged.get("employer", ""), merged.get("location", ""), merged.get("application_url", ""),
             merged.get("source_job_id", ""), merged.get("description", ""), merged.get("date_posted", ""),
             merged.get("deadline", ""), merged.get("employment_type", ""), merged["canonical_url"],
-            merged["content_hash"], merged["fingerprint"], result.score,
-            json.dumps(result.details, ensure_ascii=False), now, job_id,
+            merged["content_hash"], merged["fingerprint"], overall, qualification, direction, curiosity,
+            int(scoring_config().get("version", 2)), details, now, job_id,
         ),
     )
     log_event(conn, "job_enriched", "Manglende annonceoplysninger blev opdateret", job_id)
@@ -324,8 +351,8 @@ def _store_job(data: dict[str, Any], initial_status: str | None = None) -> dict[
     data["content_hash"] = content_hash(data.get("description", ""))
     data["fingerprint"] = fingerprint(data.get("title", ""), data.get("employer"), data.get("location"), data.get("source_job_id"))
     score = score_job(data, profile)
-    data["score"] = score.score
-    data["score_details"] = json.dumps(score.details, ensure_ascii=False)
+    data["score"], data["qualification_score"], data["direction_score"], data["curiosity_score"], data["score_details"] = _score_values(score)
+    data["scoring_version"] = int(scoring_config().get("version", 2))
     now = utcnow()
 
     with connection() as conn:
@@ -361,15 +388,17 @@ def _store_job(data: dict[str, Any], initial_status: str | None = None) -> dict[
         cur = conn.execute("""
             INSERT INTO jobs(
                 source,source_job_id,source_url,application_url,canonical_url,title,employer,location,
-                description,date_posted,deadline,employment_type,content_hash,fingerprint,score,score_details,
+                description,date_posted,deadline,employment_type,content_hash,fingerprint,score,
+                qualification_score,direction_score,curiosity_score,scoring_version,score_details,
                 status,discovered_at,updated_at
-            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         """, (
             data.get("source", "manual"), data.get("source_job_id", ""), data.get("source_url", ""),
             data.get("application_url", ""), data["canonical_url"], data.get("title") or "Ukendt stilling",
             data.get("employer", ""), data.get("location", ""), data.get("description", ""),
             data.get("date_posted", ""), data.get("deadline", ""), data.get("employment_type", ""),
-            data["content_hash"], data["fingerprint"], data["score"], data["score_details"],
+            data["content_hash"], data["fingerprint"], data["score"], data["qualification_score"],
+            data["direction_score"], data["curiosity_score"], data["scoring_version"], data["score_details"],
             status, now, now,
         ))
         job_id = int(cur.lastrowid)
@@ -446,7 +475,6 @@ async def _run_scan() -> None:
     max_candidates = max(1, int(scan_cfg.get("max_links_per_search", 80)))
     max_load_more_clicks = max(1, int(scan_cfg.get("max_load_more_clicks", 70)))
     candidate_min_score = max(0, int(scan_cfg.get("candidate_min_score", 10)))
-    store_min_score = max(0, int(scan_cfg.get("minimum_score_to_store", 10)))
     run_started_at = str(SCAN_STATE.get("started_at") or utcnow())
     pending_checkpoints: list[tuple[int, str]] = []
     checkpoint_blockers: list[str] = []
@@ -541,25 +569,30 @@ async def _run_scan() -> None:
             if incremental_enabled and discovery.cards and not discovery.oldest_date_posted:
                 search_partial_reasons.append("opslagenes publiceringsdato kunne ikke bekræftes")
 
-            ranked: list[tuple[int, SearchResultCard]] = []
-            for card in discovery.cards:
-                result = score_job({
-                    "title": card.title,
-                    "description": card.snippet,
-                    "source_url": card.url,
-                }, profile)
-                if result.score >= candidate_min_score:
-                    ranked.append((result.score, card))
-                else:
-                    SCAN_STATE["prefiltered"] += 1
-
-            ranked.sort(key=lambda item: item[0], reverse=True)
-            candidates = [card for _, card in ranked[:max_candidates]]
-            if len(ranked) > max_candidates:
-                SCAN_STATE["prefiltered"] += len(ranked) - max_candidates
-                search_partial_reasons.append(
-                    f"kandidatgrænsen på {max_candidates} blev nået ({len(ranked)} kandidater fandtes)"
-                )
+            source_key = str(search.get("source") or "").casefold()
+            if source_key == "jobnet":
+                # Jobnet cards already contain structured advert data, so evaluating every
+                # available card avoids dropping career-change roles before full scoring.
+                candidates = list(discovery.cards)
+            else:
+                ranked: list[tuple[int, SearchResultCard]] = []
+                for card in discovery.cards:
+                    result = score_job({
+                        "title": card.title,
+                        "description": card.snippet,
+                        "source_url": card.url,
+                    }, profile)
+                    if is_prefilter_candidate(result, candidate_min_score):
+                        ranked.append((max(result.score, result.dimension("direction"), result.dimension("curiosity")), card))
+                    else:
+                        SCAN_STATE["prefiltered"] += 1
+                ranked.sort(key=lambda item: item[0], reverse=True)
+                candidates = [card for _, card in ranked[:max_candidates]]
+                if len(ranked) > max_candidates:
+                    SCAN_STATE["prefiltered"] += len(ranked) - max_candidates
+                    search_partial_reasons.append(
+                        f"kandidatgrænsen på {max_candidates} blev nået ({len(ranked)} kandidater fandtes)"
+                    )
             SCAN_STATE["links"] += len(candidates)
             if incremental_enabled and checkpoint_value:
                 SCAN_STATE["message"] = (
@@ -586,7 +619,7 @@ async def _run_scan() -> None:
                         SCAN_STATE["detail_fallbacks"] += 1
                     SCAN_STATE["current_title"] = extracted.title
                     full_score = score_job(extracted.dict(), profile)
-                    if full_score.score < store_min_score:
+                    if not should_retain(full_score):
                         SCAN_STATE["filtered"] += 1
                     else:
                         stored = _store_job(extracted.dict(), initial_status="new")

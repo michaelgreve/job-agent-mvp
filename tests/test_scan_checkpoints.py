@@ -4,7 +4,7 @@ import asyncio
 from copy import deepcopy
 
 from jobagent import main
-from jobagent.config import normalize_searches_config
+from jobagent.config import DEFAULT_PROFILE, normalize_searches_config
 from jobagent.extractors import (
     SearchDiscovery,
     SearchResultCard,
@@ -168,3 +168,44 @@ def test_jobindex_search_patterns_are_migrated_without_enabling_checkpoint():
     assert "/c?t=" in search["link_patterns"]
     assert search["incremental"]["enabled"] is False
     assert search["incremental"]["checkpoint"]["kind"] == ""
+
+
+def test_jobnet_structured_cards_are_all_scored_without_jobindex_candidate_cap(monkeypatch):
+    cards = [
+        SearchResultCard(
+            url=f"https://jobnet.dk/find-job/{index}",
+            title=f"BMS/CTS trainee {index}",
+            snippet="Oplæring i CTS BMS PLC automation, commissioning, sensorer og tekniske bygningsinstallationer.",
+            job_data={
+                "source": "jobnet",
+                "source_job_id": str(index),
+                "source_url": f"https://jobnet.dk/find-job/{index}",
+                "application_url": f"https://jobnet.dk/find-job/{index}",
+                "title": f"BMS/CTS trainee {index}",
+                "employer": "Test",
+                    "description": "Oplæring i CTS BMS PLC automation, commissioning, sensorer og tekniske bygningsinstallationer.",
+            },
+        )
+        for index in range(2)
+    ]
+    searches = {
+        "searches": [{
+            "name": "Jobnet", "source": "jobnet", "url": "https://jobnet.dk/find-job",
+            "enabled": True, "incremental": {"enabled": False},
+        }],
+        "scan": {"max_links_per_search": 1, "candidate_min_score": 99, "delay_seconds": 0},
+    }
+
+    async def fake_discover(*args, **kwargs):
+        return SearchDiscovery(cards=cards, listings_seen=2, cards_after_checkpoint=2)
+
+    monkeypatch.setattr(main, "load_json", lambda path: deepcopy(searches) if path == main.SEARCHES_PATH else deepcopy(DEFAULT_PROFILE))
+    monkeypatch.setattr(main, "discover_search_results", fake_discover)
+    monkeypatch.setattr(main, "_store_job", lambda *args, **kwargs: {"duplicate": False})
+    main.SCAN_STATE = {**main._new_scan_state(), "running": True, "started_at": "2026-09-21T08:00:00+00:00"}
+
+    asyncio.run(main._run_scan())
+
+    assert main.SCAN_STATE["processed"] == 2
+    assert main.SCAN_STATE["new"] == 2
+    assert main.SCAN_STATE["prefiltered"] == 0

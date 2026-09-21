@@ -5,6 +5,7 @@ __pycache__/
 .setup-complete
 .update-backup-*/
 .DS_Store
+debug.log
 
 .env
 .env.*
@@ -13,6 +14,7 @@ __pycache__/
 data/jobagent.db*
 data/profile.json
 data/searches.json
+data/scoring.json
 data/browser-profile/
 data/generated/
 data/cv/*
